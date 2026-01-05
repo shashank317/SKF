@@ -1,10 +1,17 @@
+import { useNavigate } from "react-router-dom";
 import HeroCanvas from "./HeroCanvas";
-import BlurText from "./BlurText";
-import ShinyButton from "./ShinyButton";
+import BlurText from "../ui/BlurText";
+import ShinyButton from "../ui/ShinyButton";
 
 function Hero() {
+  const navigate = useNavigate();
+
   const handleAnimationComplete = () => {
     console.log('Animation completed!');
+  };
+
+  const handleOpenConfigurator = () => {
+    navigate('/configurator');
   };
 
   return (
@@ -57,7 +64,7 @@ function Hero() {
           direction="top"
         />
 
-        <ShinyButton text="Open Configurator" />
+        <ShinyButton text="Open Configurator" onClick={handleOpenConfigurator} />
       </div>
 
       <HeroCanvas />

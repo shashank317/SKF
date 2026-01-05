@@ -1,4 +1,5 @@
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "../../context/ThemeContext";
+import logo from "../../assets/CLOGO.png";
 
 function Layout({ children }) {
   const { toggleTheme, theme } = useTheme();
@@ -8,7 +9,7 @@ function Layout({ children }) {
       <header className="navbar">
         <div className="nav-left">
           <div className="logo">
-            CADMAXX<span className="logo-accent">_ENG</span>
+            <img src={logo} alt="CADMAXX Logo" className="logo-img" />
           </div>
         </div>
 

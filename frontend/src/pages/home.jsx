@@ -1,6 +1,6 @@
-import Layout from "../components/Layout";
+import Layout from "../components/Landing/Layout";
 import Hero from "../components/Landing/Hero";
-import Capabilities from "../components/Landing/capabilities";
+import Capabilities from "../components/Landing/Capabilities";
 import Workflow from "../components/Landing/Workflow";
 import Footer from "../components/Landing/Footer";
 

@@ -1,0 +1,37 @@
+
+Part No.
+PN
+Type Selection
+TS
+H
+H [mm]
+L Selection
+LS [mm]
+Max. Stroke
+STROKE [mm]
+W
+W [mm]
+B
+B [mm]
+P1
+P1 [mm]
+P2
+P2 [mm]
+P3
+P3 [mm]
+S
+S
+l
+LL [mm]
+b
+BB [mm]
+C
+C [mm]
+H1
+H1 [mm]
+d x G x h
+DGH [mm]
+M
+M
+P
+P [mm]
