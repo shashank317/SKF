@@ -1,9 +1,6 @@
-import { useTheme } from "../../context/ThemeContext";
 import logo from "../../assets/CLOGO.png";
 
 function Layout({ children }) {
-  const { toggleTheme, theme } = useTheme();
-
   return (
     <>
       <header className="navbar">
@@ -14,9 +11,7 @@ function Layout({ children }) {
         </div>
 
         <div className="nav-right">
-          <button className="theme-toggle" onClick={toggleTheme}>
-            {theme === "dark" ? "LIGHT MODE" : "DARK MODE"}
-          </button>
+          {/* Theme toggle removed - using light mode only */}
         </div>
       </header>
 

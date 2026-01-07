@@ -29,7 +29,7 @@ function Workflow() {
   return (
     <section className="workflow">
       <div className="workflow-header">
-        <h2>Workflow</h2>
+        <h1>Workflow</h1>
         <h3>From parameters to part number.</h3>
       </div>
 

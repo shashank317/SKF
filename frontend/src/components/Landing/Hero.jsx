@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroCanvas from "./HeroCanvas";
 import BlurText from "../ui/BlurText";
@@ -5,13 +6,18 @@ import ShinyButton from "../ui/ShinyButton";
 
 function Hero() {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleAnimationComplete = () => {
     console.log('Animation completed!');
   };
 
   const handleOpenConfigurator = () => {
-    navigate('/configurator');
+    setIsLoading(true);
+    // Small delay to show the animation before navigation
+    setTimeout(() => {
+      navigate('/configurator');
+    }, 1500);
   };
 
   return (
@@ -68,6 +74,28 @@ function Hero() {
       </div>
 
       <HeroCanvas />
+
+      {/* Loading Animation Overlay */}
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loading-content">
+            <div className="spinner-container">
+              <div className="spinner-ring"></div>
+              <div className="spinner-ring"></div>
+              <div className="spinner-ring"></div>
+              <div className="spinner-core"></div>
+            </div>
+            <div className="loading-text">
+              <div className="loading-title">Initializing Configurator</div>
+              <div className="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

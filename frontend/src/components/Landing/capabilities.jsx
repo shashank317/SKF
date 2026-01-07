@@ -1,4 +1,5 @@
 import ScrollFloat from './ScrollFloat';
+import configImg from '../../assets/config.png';
 
 const cards = [
   {
@@ -7,35 +8,14 @@ const cards = [
       "Define shaft diameters, widths, and constraints directly.",
     className: "preview-card",
     children: (
-      <div className="example-box">
-        <p className="right-box-label">Example Preview</p>
-
-        <div className="preview-item">
-          <span>Diameter</span>
-          <span className="preview-value">25</span>
-        </div>
-
-        <div className="preview-item">
-          <span>Width</span>
-          <span className="preview-value">12</span>
-        </div>
-
-        <div className="preview-item">
-          <span>Material</span>
-          <span className="preview-value">Steel</span>
-        </div>
-
-        <div className="example-result">
-          Matched Part: <strong>ABC-123</strong>
-        </div>
-      </div>
+      <img
+        src={configImg}
+        alt="Configurator Preview"
+        style={{ width: '200%', borderRadius: '10px', marginTop: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+      />
     )
   },
-  {
-    title: "Auto Resolve",
-    description:
-      "System validates against thousands of SKUs instantly.",
-  },
+
 ];
 
 function Capabilities({ className = "" }) {

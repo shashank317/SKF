@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import {
+    Ruler,
+    ScanLine,
+    Loader2,
+    Box,
+    Info,
+    Maximize2,
+    Settings2,
+    Download
+} from "lucide-react";
+import {
     Viewer,
     GLTFLoaderPlugin,
     SectionPlanesPlugin,
@@ -10,291 +20,355 @@ import {
     AxisGizmoPlugin,
     FastNavPlugin
 } from "@xeokit/xeokit-sdk";
+import "./Preview3D.css";
 
-const Preview3D = () => {
+const modelPath = "/SSELBWN14-110.glb";
+
+const Preview3D = ({ showModel }) => {
     const canvasRef = useRef(null);
     const viewerRef = useRef(null);
     const [sectionEnabled, setSectionEnabled] = useState(false);
     const [measurementMode, setMeasurementMode] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [activeInstruction, setActiveInstruction] = useState(null);
     const sectionPlanesPluginRef = useRef(null);
     const measurementsPluginRef = useRef(null);
     const measurementControlRef = useRef(null);
 
     useEffect(() => {
+        if (!showModel) {
+            if (viewerRef.current) {
+                viewerRef.current.destroy();
+                viewerRef.current = null;
+            }
+            return;
+        }
+
         if (viewerRef.current) return;
 
-        console.log("🎬 Initializing xeokit viewer...");
-
-        const viewer = new Viewer({
-            canvasElement: canvasRef.current,
-            transparent: true,
-            backgroundColor: [245, 247, 250]
-        });
-
-        viewerRef.current = viewer;
-        console.log("✅ Viewer created");
-
-        // Camera setup
-        viewer.camera.eye = [3, 3, 3];
-        viewer.camera.look = [0, 0, 0];
-        viewer.camera.up = [0, 1, 0];
-
-        // Enable camera controls (orbit, pan, zoom)
-        viewer.cameraControl.panEnabled = true;
-        viewer.cameraControl.rotateEnabled = true;
-        viewer.cameraControl.zoomEnabled = true;
-
-        // GLTF Loader - using GLB because XKT file was empty
-        const gltfLoader = new GLTFLoaderPlugin(viewer);
-
-        console.log("📦 Loading GLB model from:", "/src/assets/SSELBWN14-110.glb");
-
         let modelRef = null;
+        let timeoutId = null;
 
-        const model = gltfLoader.load({
-            id: "bearing",
-            src: "/src/assets/SSELBWN14-110.glb",
-            edges: true,              // Emphasize edges for professional CAD look
-            saoEnabled: true,         // Scalable Ambient Obscurance for depth
-            edgeThreshold: 15,        // Optimized for cylindrical geometry
-            pbrEnabled: true,         // Physically-based rendering
-            backfaces: true           // Show all surfaces
-        });
+        const initializeViewer = () => {
+            console.log("🎬 Initializing xeokit viewer...");
 
-        modelRef = model;
+            if (viewerRef.current) return;
 
-        // Listen for load events
-        model.on("loaded", () => {
-            if (!viewerRef.current) return; // Viewer was destroyed
+            const viewer = new Viewer({
+                canvasElement: canvasRef.current,
+                transparent: true,
+                backgroundColor: [248, 250, 252],
+                units: "millimeters"
+            });
 
-            console.log("✅ Model loaded successfully!");
-            console.log("Model bounds:", viewer.scene.getAABB());
-            console.log("Num objects:", Object.keys(viewer.scene.objects).length);
+            viewerRef.current = viewer;
 
-            setIsLoading(false);
+            // Camera setup
+            viewer.camera.eye = [3, 3, 3];
+            viewer.camera.look = [0, 0, 0];
+            viewer.camera.up = [0, 1, 0];
 
-            // Fit camera to model
-            viewer.cameraFlight.flyTo(model);
-        });
+            viewer.cameraControl.panEnabled = true;
+            viewer.cameraControl.rotateEnabled = true;
+            viewer.cameraControl.zoomEnabled = true;
 
-        model.on("error", (error) => {
-            console.error("❌ Error loading model:", error);
-        });
+            const gltfLoader = new GLTFLoaderPlugin(viewer);
 
-        // Initialize measurements plugin
-        const measurementsPlugin = new DistanceMeasurementsPlugin(viewer);
-        measurementsPluginRef.current = measurementsPlugin;
+            const model = gltfLoader.load({
+                id: "bearing",
+                src: modelPath,
+                edges: true,
+                saoEnabled: false,
+                pbrEnabled: false,
+                backfaces: true
+            });
 
-        // Initialize pointer lens for precise measurement positioning
-        const pointerLens = new PointerLens(viewer);
+            modelRef = model;
 
-        // Initialize measurement control for interactive measurements
-        const measurementControl = new DistanceMeasurementsMouseControl(measurementsPlugin, {
-            pointerLens: pointerLens
-        });
+            model.on("loaded", () => {
+                if (!viewerRef.current) return;
+                console.log("✅ Model loaded successfully!");
+                setIsLoading(false);
+                viewer.cameraFlight.flyTo(model);
+            });
 
-        // Enable snapping to vertices and edges
-        measurementControl.snapToVertex = true;
-        measurementControl.snapToEdge = true;
+            model.on("error", (error) => {
+                console.error("❌ Error loading model:", error);
+                setIsLoading(false);
+                setActiveInstruction({
+                    icon: <Info className="w-5 h-5 text-red-500" />,
+                    text: "Load Error",
+                    subtext: "Could not load 3D model"
+                });
+            });
 
-        measurementControlRef.current = measurementControl;
+            // Failsafe timeout
+            timeoutId = setTimeout(() => {
+                if (isLoading) {
+                    console.warn("⚠️ Model load timed out");
+                    setIsLoading(false);
+                    setActiveInstruction({
+                        icon: <Info className="w-5 h-5 text-orange-500" />,
+                        text: "Load Warning",
+                        subtext: "Model taking time to appear"
+                    });
+                }
+            }, 8000);
 
-        // Initialize SectionPlanesPlugin (proper API from docs)
-        const sectionPlanesPlugin = new SectionPlanesPlugin(viewer, {
-            overviewVisible: false
-        });
-        sectionPlanesPluginRef.current = sectionPlanesPlugin;
+            // Plugins
+            const measurementsPlugin = new DistanceMeasurementsPlugin(viewer);
+            measurementsPluginRef.current = measurementsPlugin;
 
-        // Create section plane (initially inactive)
-        sectionPlanesPlugin.createSectionPlane({
-            id: "mySectionPlane",
-            pos: [0, 0, 0],
-            dir: [1, 0, 0],
-            active: false
-        });
+            const pointerLens = new PointerLens(viewer);
+            const measurementControl = new DistanceMeasurementsMouseControl(measurementsPlugin, {
+                pointerLens: pointerLens
+            });
+            measurementControl.snapToVertex = true;
+            measurementControl.snapToEdge = true;
+            measurementControlRef.current = measurementControl;
 
-        // Initialize NavCube for orientation control
-        new NavCubePlugin(viewer, {
-            canvasId: "navCubeCanvas",
-            visible: true,
-            cameraFly: true,           // Smooth camera transitions
-            cameraFitFOV: 45,          // Good viewing angle for bearings
-            cameraFlyDuration: 0.5,    // Quick but smooth (0.5 seconds)
-            fitVisible: false,         // Fit entire scene
-            shadowVisible: true        // Show cube shadow
-        });
+            const sectionPlanesPlugin = new SectionPlanesPlugin(viewer, { overviewVisible: false });
+            sectionPlanesPluginRef.current = sectionPlanesPlugin;
+            sectionPlanesPlugin.createSectionPlane({
+                id: "mySectionPlane",
+                pos: [0, 0, 0],
+                dir: [1, 0, 0],
+                active: false
+            });
 
-        // Initialize AxisGizmo for XYZ axis display
-        new AxisGizmoPlugin(viewer, {
-            canvasId: "axisGizmoCanvas"
-        });
+            new NavCubePlugin(viewer, {
+                canvasId: "navCubeCanvas",
+                visible: true,
+                cameraFly: true,
+                cameraFitFOV: 45,
+                cameraFlyDuration: 0.5,
+                fitVisible: false,
+                shadowVisible: true
+            });
 
-        // Initialize FastNav for smoother interaction with large models
-        new FastNavPlugin(viewer, {
-            hideEdges: true,                    // Hide edges while moving
-            hideSAO: true,                      // Hide ambient shadows while moving
-            hidePBR: false,                     // Keep PBR (bearing needs good materials)
-            hideColorTexture: false,            // Keep textures
-            hideTransparentObjects: false,      // Keep transparency
-            scaleCanvasResolution: true,        // Scale resolution for performance
-            scaleCanvasResolutionFactor: 0.7,   // 70% resolution while moving (good balance)
-            defaultScaleCanvasResolutionFactor: 1.0, // Full resolution when stopped
-            delayBeforeRestore: true,           // Delay before restoring quality
-            delayBeforeRestoreSeconds: 0.5      // 0.5s delay
-        });
+            new AxisGizmoPlugin(viewer, { canvasId: "axisGizmoCanvas" });
 
-        // Cleanup - proper memory management
+            new FastNavPlugin(viewer, {
+                hideEdges: true,
+                hideSAO: true,
+                hidePBR: false,
+                hideColorTexture: false,
+                hideTransparentObjects: false,
+                scaleCanvasResolution: true,
+                scaleCanvasResolutionFactor: 0.7,
+                delayBeforeRestore: true,
+                delayBeforeRestoreSeconds: 0.5
+            });
+        };
+
+        // Check access then init
+        setIsLoading(true);
+        console.log(`🔍 Checking access to: ${modelPath}`);
+        fetch(modelPath)
+            .then(res => {
+                if (!res.ok) throw new Error(res.statusText);
+                console.log("✅ File accessible, starting viewer...");
+                // initializeViewer(); // Intentionally called here
+                return res.blob();
+            })
+            .then(() => {
+                initializeViewer();
+            })
+            .catch(err => {
+                console.error("❌ File access check failed:", err);
+                setIsLoading(false);
+                setActiveInstruction({
+                    icon: <Info className="w-5 h-5 text-red-500" />,
+                    text: "File Not Found",
+                    subtext: "System could not locate model"
+                });
+            });
+
         return () => {
+            if (timeoutId) clearTimeout(timeoutId);
             console.log("🧹 Cleaning up viewer");
 
-            // Destroy model first to cancel any pending operations
             if (modelRef) {
-                try {
-                    modelRef.destroy();
-                } catch (e) {
-                    // Model may already be destroyed
-                }
+                try { modelRef.destroy(); } catch (e) { }
             }
-
-            // Then destroy viewer
-            if (viewer) {
-                viewer.destroy();
+            if (viewerRef.current) {
+                viewerRef.current.destroy();
+                viewerRef.current = null;
             }
-
-            viewerRef.current = null;
         };
-    }, []);
+    }, [showModel]);
 
-    // Toggle section cut
     const toggleSection = () => {
-        if (sectionPlanesPluginRef.current) {
-            const sectionPlane = sectionPlanesPluginRef.current.sectionPlanes["mySectionPlane"];
-            if (sectionPlane) {
-                const newState = !sectionEnabled;
-                sectionPlane.active = newState;
-                setSectionEnabled(newState);
+        if (!sectionPlanesPluginRef.current) return;
 
-                // Show interactive 3D gizmo when section is enabled
-                if (newState) {
-                    sectionPlanesPluginRef.current.showControl("mySectionPlane");
-                } else {
-                    sectionPlanesPluginRef.current.hideControl();
-                }
-            }
+        const newState = !sectionEnabled;
+        setSectionEnabled(newState);
+
+        const plane = sectionPlanesPluginRef.current.sectionPlanes["mySectionPlane"];
+        if (plane) {
+            plane.active = newState;
+        }
+
+        if (newState) {
+            sectionPlanesPluginRef.current.showControl("mySectionPlane");
+            setActiveInstruction({
+                icon: <ScanLine className="w-5 h-5 text-blue-500" />,
+                text: "Section View Active",
+                subtext: "Drag handles to slice model"
+            });
+        } else {
+            sectionPlanesPluginRef.current.hideControl();
+            setActiveInstruction(null);
         }
     };
 
-    // Toggle interactive measurement mode
     const toggleMeasurementMode = () => {
-        if (measurementControlRef.current) {
-            const newState = !measurementMode;
-            setMeasurementMode(newState);
-
-            if (newState) {
-                // Activate: click on model to create measurements
-                measurementControlRef.current.activate();
-                console.log("📏 Measurement mode activated - click two points on the model");
-            } else {
-                // Deactivate
-                measurementControlRef.current.deactivate();
-                console.log("📏 Measurement mode deactivated");
+        if (!measurementControlRef.current) return;
+        const newState = !measurementMode;
+        setMeasurementMode(newState);
+        if (newState) {
+            measurementControlRef.current.activate();
+            setActiveInstruction({
+                icon: <Ruler className="w-5 h-5 text-blue-500" />,
+                text: "Measurement Mode",
+                subtext: "Click two points to measure"
+            });
+        } else {
+            measurementControlRef.current.deactivate();
+            measurementsPluginRef.current.clear();
+            if (activeInstruction?.text === "Measurement Mode") {
+                setActiveInstruction(null);
             }
         }
     };
+
+    const resetView = () => {
+        if (!viewerRef.current) return;
+        viewerRef.current.cameraFlight.flyTo({
+            eye: [3, 3, 3], look: [0, 0, 0], up: [0, 1, 0], duration: 1
+        });
+    };
+
+    if (!showModel) {
+        return (
+            <div className="preview3d-container placeholder-view">
+                <div className="preview3d-header">
+                    <div className="header-left">
+                        <h1 className="header-title">
+                            <Box className="header-icon" />
+                            Component Inspector
+                        </h1>
+                    </div>
+                </div>
+                <div className="placeholder-content">
+                    <Box className="placeholder-icon" size={64} strokeWidth={1} />
+                    <h2>Ready to Configure</h2>
+                    <p>Enter your specifications in the input panel and click "Apply Configuration" to generate the 3D preview.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div style={{ width: "100%", height: "100%", position: "relative" }}>
-            <canvas
-                ref={canvasRef}
-                style={{ width: "100%", height: "100%" }}
-            />
-
-            {/* NavCube canvas - positioned in bottom-right corner */}
-            <canvas
-                id="navCubeCanvas"
-                style={{
-                    position: "absolute",
-                    bottom: "20px",
-                    right: "20px",
-                    width: "200px",
-                    height: "200px",
-                    zIndex: 100
-                }}
-            />
-
-            {/* AxisGizmo canvas - positioned in bottom-left corner */}
-            <canvas
-                id="axisGizmoCanvas"
-                style={{
-                    position: "absolute",
-                    bottom: "20px",
-                    left: "20px",
-                    width: "120px",
-                    height: "120px",
-                    zIndex: 100
-                }}
-            />
-
-            {/* Loading indicator */}
-            {isLoading && (
-                <div style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    padding: "20px 40px",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-                    fontSize: "16px",
-                    fontWeight: "500",
-                    color: "#333"
-                }}>
-                    Loading 3D Model...
+        <div className="preview3d-container">
+            <div className="preview3d-header">
+                <div className="header-left">
+                    <h1 className="header-title">
+                        <Box className="header-icon" />
+                        Component Inspector
+                    </h1>
+                    <p className="header-subtitle">
+                        SSELBWN14-110 / Engineering View
+                    </p>
                 </div>
-            )}
+                <div className="flex items-center gap-3">
+                    <button
+                        className="download-cad-btn"
+                        onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = modelPath;
+                            link.download = 'SSELBWN14-110.glb';
+                            link.click();
+                        }}
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Download CAD</span>
+                    </button>
+                    <div className="status-pill">
+                        <div className={`status-dot ${isLoading ? 'loading' : 'ready'}`} />
+                        <span className="status-text">
+                            {isLoading ? 'Loading Engine' : 'System Ready'}
+                        </span>
+                    </div>
+                </div>
+            </div>
 
-            {/* Floating toolbar for controls */}
-            <div style={{
-                position: "absolute",
-                top: "20px",
-                right: "20px",
-                display: "flex",
-                gap: "10px",
-                flexDirection: "column"
-            }}>
-                <button
-                    onClick={toggleSection}
-                    style={{
-                        padding: "10px 16px",
-                        backgroundColor: sectionEnabled ? "#3b82f6" : "#fff",
-                        color: sectionEnabled ? "#fff" : "#333",
-                        border: "1px solid #ddd",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500"
-                    }}
-                >
-                    {sectionEnabled ? "Hide Section" : "Section View"}
-                </button>
+            <div className="canvas-wrapper">
+                <canvas ref={canvasRef} className="main-canvas" />
+                <canvas id="navCubeCanvas" className="navcube-canvas" />
+                <canvas id="axisGizmoCanvas" className="axisgizmo-canvas" />
 
-                <button
-                    onClick={toggleMeasurementMode}
-                    style={{
-                        padding: "10px 16px",
-                        backgroundColor: measurementMode ? "#10b981" : "#fff",
-                        color: measurementMode ? "#fff" : "#333",
-                        border: "1px solid #ddd",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500"
-                    }}
-                >
-                    {measurementMode ? "Stop Measuring" : "Measure"}
-                </button>
+                {isLoading && (
+                    <div className="loading-overlay">
+                        <div className="loading-content">
+                            <Loader2 className="loading-spinner" />
+                            <div className="loading-text">Initializing 3D Environment...</div>
+                        </div>
+                    </div>
+                )}
+
+                {activeInstruction && (
+                    <div className="instruction-toast">
+                        <div className="toast-content">
+                            {activeInstruction.icon || <Info className="toast-icon" />}
+                            <span className="toast-text">{activeInstruction.text || activeInstruction}</span>
+                        </div>
+                        {activeInstruction.subtext && (
+                            <div className="toast-subtext">{activeInstruction.subtext}</div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <div className="floating-dock">
+                <div className="dock-container">
+                    <Tooltip text="Section Cut (X-Axis)">
+                        <button onClick={toggleSection} className={`dock-btn ${sectionEnabled ? 'active section-active' : ''}`}>
+                            <ScanLine className="btn-icon" strokeWidth={1.5} />
+                            {sectionEnabled && <span className="pulse-indicator" />}
+                        </button>
+                    </Tooltip>
+                    <div className="dock-divider" />
+                    <Tooltip text="Measurement Tool">
+                        <button onClick={toggleMeasurementMode} className={`dock-btn ${measurementMode ? 'active measure-active' : ''}`}>
+                            <Ruler className="btn-icon" strokeWidth={1.5} />
+                            {measurementMode && <span className="pulse-indicator measure-pulse" />}
+                        </button>
+                    </Tooltip>
+                    <div className="dock-divider" />
+                    <Tooltip text="Reset View">
+                        <button onClick={resetView} className="dock-btn">
+                            <Maximize2 className="btn-icon" strokeWidth={1.5} />
+                        </button>
+                    </Tooltip>
+                    <Tooltip text="Settings">
+                        <button className="dock-btn settings-btn">
+                            <Settings2 className="btn-icon" strokeWidth={1.5} />
+                        </button>
+                    </Tooltip>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Tooltip = ({ text, children }) => {
+    return (
+        <div className="tooltip-wrapper">
+            {children}
+            <div className="tooltip-container">
+                <div className="tooltip-content">{text}</div>
+                <div className="tooltip-arrow" />
             </div>
         </div>
     );

@@ -1,0 +1,281 @@
+/* ============================================
+   RESIZE HANDLE
+   ============================================ */
+
+.resize-handle {
+    position: relative;
+    cursor: col-resize;
+    background: var(--border-color);
+    transition: background-color 0.2s ease;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.resize-handle:hover {
+    background: var(--accent-color);
+}
+
+.resize-handle.resizing {
+    background: var(--accent-color);
+}
+
+.resize-handle-bar {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 32px;
+    height: 60px;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+.resize-handle:hover .resize-handle-bar {
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.resize-handle.resizing .resize-handle-bar {
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.resize-handle-icon {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.resize-handle:hover .resize-handle-icon {
+    color: var(--accent-color);
+}
+
+.resize-handle.resizing .resize-handle-icon {
+    color: var(--accent-color);
+}
+
+/* Ensure configurator-main uses proper grid */
+.configurator-main {
+    display: grid;
+    /* grid-template-columns set via inline style for dynamic resizing */
+    min-height: calc(100vh - 56px - 100px);
+    /* Subtract header + tabs height */
+    max-height: calc(100vh - 56px - 100px);
+    position: relative;
+}
+
+/* Remove the old pseudo-element divider */
+.configurator-main::before {
+    content: none;
+}
+
+/* ============================================
+   BOTTOM TABS NAVIGATION
+   ============================================ */
+
+.bottom-tabs-navigation {
+    position: fixed;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: white;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 0 2rem;
+    overflow-x: auto;
+    flex-shrink: 0;
+    z-index: 45;
+}
+
+
+.bottom-tabs-navigation::-webkit-scrollbar {
+    height: 3px;
+}
+
+.bottom-tabs-navigation::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+}
+
+.bottom-tab-btn {
+    flex-shrink: 0;
+    padding: 0 1.5rem;
+    height: 60px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.bottom-tab-btn:hover {
+    color: #334155;
+    background: #f8fafc;
+}
+
+.bottom-tab-btn.active {
+    color: #6366f1;
+    border-bottom-color: #6366f1;
+}
+
+/* ============================================
+   TAB CONTENT PANEL
+   ============================================ */
+
+.tab-content-panel {
+    position: fixed;
+    bottom: 100px;
+    left: 0;
+    right: 0;
+    height: 300px;
+    background: white;
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 40;
+    animation: slideUp 0.3s ease;
+}
+
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.tab-content-inner {
+    padding: 2rem;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.tab-content-inner h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 1.5rem 0;
+}
+
+/* Work in Progress Section */
+.work-in-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 0;
+}
+
+.wip-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.wip-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #6366f1;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+}
+
+.wip-subtitle {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* ============================================
+   RESET BUTTON IN HEADER
+   ============================================ */
+
+.btn-reset {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-primary);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-reset:hover {
+    background: #f8fafc;
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.btn-reset:active {
+    transform: scale(0.98);
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.configurator-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid var(--border-color);
+    padding: 0.5rem 2rem;
+    text-align: center;
+    z-index: 45;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.footer-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.footer-brand {
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: 0.1em;
+}
+
+.footer-divider {
+    color: #cbd5e1;
+    font-size: 0.75rem;
+}
+
+.footer-text {
+    font-size: 0.625rem;
+    color: #64748b;
+}

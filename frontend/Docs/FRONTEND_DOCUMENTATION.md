@@ -1,0 +1,797 @@
+# SKF3 CAD Configurator - Frontend Documentation
+
+**Project Name:** SKF3 CAD Configurator  
+**Version:** 0.0.0  
+**Last Updated:** January 7, 2026  
+**Document Type:** Technical Specification & Developer Guide
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#executive-summary)
+2. [System Architecture](#system-architecture)
+3. [Technology Stack](#technology-stack)
+4. [Project Structure](#project-structure)
+5. [Component Architecture](#component-architecture)
+6. [Routing & Navigation](#routing--navigation)
+7. [State Management](#state-management)
+8. [Styling System](#styling-system)
+9. [3D Visualization](#3d-visualization)
+10. [Configuration Parameters](#configuration-parameters)
+11. [Development Workflow](#development-workflow)
+12. [Build & Deployment](#build--deployment)
+13. [Performance Optimization](#performance-optimization)
+14. [Browser Compatibility](#browser-compatibility)
+15. [Maintenance & Support](#maintenance--support)
+
+---
+
+## 1. Executive Summary
+
+The SKF3 CAD Configurator is a modern web-based application designed to streamline the configuration and visualization of SKF linear motion products. The application provides an intuitive interface for engineers and technical users to specify product parameters and generate 3D CAD models.
+
+### Key Features
+
+- **Interactive 3D Visualization**: Real-time 3D model preview using xeokit-sdk
+- **Step-based Configuration**: Guided workflow for parameter input
+- **Responsive Design**: Optimized for desktop and tablet devices
+- **Dark/Light Theme**: User-selectable theme with persistent preferences
+- **CAD Export**: Generate and download CAD models in multiple formats
+
+### Target Users
+
+- Mechanical Engineers
+- Design Engineers
+- Technical Procurement Specialists
+- CAD Designers
+
+---
+
+## 2. System Architecture
+
+### 2.1 Architecture Pattern
+
+The application follows a **Component-Based Architecture** using React with a unidirectional data flow pattern.
+
+```mermaid
+graph TD
+    A[Browser] --> B[React Application]
+    B --> C[React Router]
+    C --> D[Page Components]
+    D --> E[Feature Components]
+    E --> F[UI Components]
+    B --> G[Context Providers]
+    G --> H[Theme Context]
+    E --> I[3D Viewer]
+    I --> J[xeokit-sdk]
+    E --> K[Configuration Service]
+    K --> L[Backend API]
+```
+
+### 2.2 Application Flow
+
+1. **Landing Page** → User introduction and feature showcase
+2. **Configurator** → Step-based parameter input
+3. **3D Preview** → Real-time model visualization
+4. **CAD Export** → Model download and export
+
+---
+
+## 3. Technology Stack
+
+### 3.1 Core Technologies
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React** | 19.2.0 | UI framework |
+| **Vite** | 7.2.5 (Rolldown) | Build tool & dev server |
+| **React Router** | 7.11.0 | Client-side routing |
+| **JavaScript (ES6+)** | ES2022 | Programming language |
+
+### 3.2 UI & Visualization Libraries
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| **xeokit-sdk** | 2.6.101 | 3D CAD model rendering |
+| **Three.js** | 0.182.0 | 3D graphics library |
+| **GSAP** | 3.14.2 | Animation library |
+| **Motion** | 12.23.26 | Animation utilities |
+| **Lucide React** | 0.562.0 | Icon library |
+
+### 3.3 Development Tools
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **ESLint** | 9.39.1 | Code linting |
+| **Vite Plugin React** | 5.1.1 | React fast refresh |
+
+---
+
+## 4. Project Structure
+
+### 4.1 Directory Tree
+
+```
+frontend/
+├── public/                    # Static assets
+│   └── models/               # 3D model files (.glb, .ifc)
+├── src/
+│   ├── app/                  # Application-level utilities
+│   ├── assets/               # Images, fonts, static files
+│   ├── components/           # React components
+│   │   ├── Landing/         # Landing page components
+│   │   ├── configurator/    # Configurator components
+│   │   ├── layout/          # Layout components
+│   │   └── ui/              # Reusable UI components
+│   ├── constants/           # Configuration constants
+│   │   └── parameters.js    # Product parameters
+│   ├── context/             # React context providers
+│   │   └── ThemeContext.jsx # Theme management
+│   ├── features/            # Feature modules
+│   ├── hooks/               # Custom React hooks
+│   ├── pages/               # Page components
+│   │   ├── Home.jsx
+│   │   ├── Configurator.jsx
+│   │   └── NotFound.jsx
+│   ├── services/            # API & external services
+│   ├── styles/              # Global styles
+│   │   └── theme.css        # Theme variables
+│   ├── App.jsx              # Root component
+│   ├── main.jsx             # Application entry point
+│   └── index.css            # Global CSS
+├── index.html               # HTML template
+├── package.json             # Dependencies
+└── vite.config.js           # Vite configuration
+```
+
+### 4.2 File Naming Conventions
+
+- **Components**: PascalCase (e.g., `InputPanel.jsx`)
+- **Utilities**: camelCase (e.g., `parameters.js`)
+- **Styles**: Match component name (e.g., `InputPanel.css`)
+- **Constants**: UPPER_SNAKE_CASE for exports
+
+---
+
+## 5. Component Architecture
+
+### 5.1 Component Hierarchy
+
+```mermaid
+graph TD
+    App[App.jsx] --> Router[React Router]
+    Router --> Home[Home Page]
+    Router --> Config[Configurator Page]
+    Router --> NotFound[404 Page]
+    
+    Home --> Layout[Layout]
+    Layout --> Hero[Hero]
+    Layout --> Capabilities[Capabilities]
+    Layout --> Workflow[Workflow]
+    Layout --> Footer[Footer]
+    
+    Config --> InputPanel[InputPanel]
+    Config --> Preview3D[Preview3D]
+    Config --> ResultPanel[ResultPanel]
+```
+
+### 5.2 Landing Page Components
+
+#### [Layout.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/components/Landing/Layout.jsx)
+**Purpose**: Main layout wrapper with theme toggle  
+**Features**:
+- Dark/light mode toggle
+- Responsive navigation
+- Theme persistence
+
+#### [Hero.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/components/Landing/Hero.jsx)
+**Purpose**: Landing page hero section  
+**Features**:
+- Animated headline with BlurText effect
+- CTA button with ShinyButton component
+- 3D canvas background (HeroCanvas)
+
+#### [Capabilities.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/components/Landing/Capabilities.jsx)
+**Purpose**: Feature showcase section  
+**Features**:
+- Grid layout of product capabilities
+- Example input preview
+- Icon-based feature cards
+
+#### [ScrollFloat.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/components/Landing/ScrollFloat.jsx)
+**Purpose**: Scroll-triggered floating text animation  
+**Features**:
+- GSAP-powered scroll animation
+- Parallax effect
+- Responsive positioning
+
+#### [Workflow.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/components/Landing/Workflow.jsx)
+**Purpose**: Step-by-step workflow visualization  
+**Features**:
+- Sequential process display
+- Icon-based steps
+
+### 5.3 Configurator Components
+
+#### [InputPanel.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/components/configurator/InputPanel.jsx)
+**Purpose**: Parameter input interface  
+**Responsibilities**:
+- Multi-step form navigation
+- Parameter validation
+- Input field rendering
+- Step progress tracking
+
+**Key Features**:
+- 4-step configuration process (Application → Geometry → Materials → Fine Tuning)
+- Real-time validation
+- Subsection organization for advanced parameters
+- Dynamic input types (text, number, select)
+
+**Props**: None (self-contained state management)
+
+#### [Preview3D.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/components/configurator/Preview3D.jsx)
+**Purpose**: 3D model visualization  
+**Responsibilities**:
+- xeokit viewer initialization
+- Model loading and rendering
+- Camera controls
+- Section view (clipping planes)
+- Dimension annotations
+
+**Key Features**:
+- Floating toolbar UI
+- Grid floor visualization
+- Model rotation and zoom
+- Section view toggle
+- Dimension display
+
+**Props**: 
+- `modelPath` (string): Path to 3D model file
+
+#### [ResultPanel.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/components/configurator/ResultPanel.jsx)
+**Purpose**: Configuration summary and export  
+**Responsibilities**:
+- Display selected parameters
+- Generate product code
+- CAD download functionality
+
+---
+
+## 6. Routing & Navigation
+
+### 6.1 Route Configuration
+
+The application uses React Router v7 for client-side routing.
+
+**Route Table**:
+
+| Path | Component | Description |
+|------|-----------|-------------|
+| `/` | [Home.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/pages/Home.jsx) | Landing page |
+| `/configurator` | [Configurator.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/pages/Configurator.jsx) | Product configurator |
+| `*` | [NotFound.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/pages/NotFound.jsx) | 404 error page |
+
+### 6.2 Navigation Implementation
+
+```javascript
+// App.jsx
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/configurator" element={<Configurator />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+---
+
+## 7. State Management
+
+### 7.1 Context API
+
+#### Theme Context
+
+**File**: [ThemeContext.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/context/ThemeContext.jsx)
+
+**Purpose**: Global theme state management
+
+**Features**:
+- Dark/light mode toggle
+- LocalStorage persistence
+- System preference detection
+
+**Usage**:
+```javascript
+import { useTheme } from '../context/ThemeContext';
+
+function Component() {
+  const { theme, toggleTheme } = useTheme();
+  // ...
+}
+```
+
+### 7.2 Component-Level State
+
+Most components use React's `useState` and `useEffect` hooks for local state management.
+
+**Example** ([InputPanel.jsx](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/components/configurator/InputPanel.jsx)):
+```javascript
+const [currentStep, setCurrentStep] = useState(0);
+const [formValues, setFormValues] = useState({});
+const [errors, setErrors] = useState({});
+```
+
+---
+
+## 8. Styling System
+
+### 8.1 CSS Architecture
+
+The application uses a **CSS Custom Properties** (CSS Variables) system for theming.
+
+**Global Styles**:
+- [index.css](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/index.css) - Base styles, resets
+- [theme.css](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/styles/theme.css) - Theme variables
+
+**Component Styles**:
+- Co-located with components (e.g., `InputPanel.css` with `InputPanel.jsx`)
+- Scoped using BEM-like naming conventions
+
+### 8.2 Theme Variables
+
+**Color System**:
+```css
+:root {
+  --color-primary: #1e40af;
+  --color-secondary: #7c3aed;
+  --color-accent: #ec4899;
+  --color-background: #ffffff;
+  --color-surface: #f3f4f6;
+  --color-text: #1f2937;
+}
+
+[data-theme="dark"] {
+  --color-background: #0f172a;
+  --color-surface: #1e293b;
+  --color-text: #f1f5f9;
+}
+```
+
+**Spacing Scale**:
+```css
+--spacing-xs: 0.25rem;   /* 4px */
+--spacing-sm: 0.5rem;    /* 8px */
+--spacing-md: 1rem;      /* 16px */
+--spacing-lg: 1.5rem;    /* 24px */
+--spacing-xl: 2rem;      /* 32px */
+```
+
+### 8.3 Responsive Design
+
+**Breakpoints**:
+```css
+/* Mobile: < 640px */
+/* Tablet: 640px - 1024px */
+/* Desktop: > 1024px */
+
+@media (max-width: 640px) { /* Mobile */ }
+@media (min-width: 641px) and (max-width: 1024px) { /* Tablet */ }
+@media (min-width: 1025px) { /* Desktop */ }
+```
+
+---
+
+## 9. 3D Visualization
+
+### 9.1 xeokit Integration
+
+**Library**: @xeokit/xeokit-sdk v2.6.101
+
+**Viewer Initialization**:
+```javascript
+const viewer = new Viewer({
+  canvasId: "myCanvas",
+  transparent: true,
+  saoEnabled: true  // Ambient occlusion
+});
+```
+
+### 9.2 Model Loading
+
+**Supported Formats**:
+- `.glb` (GLTF Binary)
+- `.ifc` (Industry Foundation Classes)
+
+**Loading Process**:
+1. Initialize viewer
+2. Load model from `/public/models/`
+3. Apply materials and lighting
+4. Set camera position
+5. Enable user controls
+
+### 9.3 Advanced Features
+
+#### Section View (Clipping Planes)
+```javascript
+const sectionPlane = viewer.scene.sectionPlanes.createSectionPlane({
+  pos: [0, 0, 0],
+  dir: [0, -1, 0]  // Y-axis clipping
+});
+```
+
+#### Dimension Annotations
+```javascript
+const annotation = new Annotation({
+  id: "dim1",
+  worldPos: [x, y, z],
+  labelShown: true,
+  values: { dimension: "100mm" }
+});
+```
+
+---
+
+## 10. Configuration Parameters
+
+### 10.1 Parameter Structure
+
+**File**: [parameters.js](file:///c:/Users/shashank/Desktop/SKF3/frontend/src/constants/parameters.js)
+
+**Parameter Schema**:
+```javascript
+{
+  label: string,        // Display name
+  key: string,          // Unique identifier
+  type: string,         // 'string' | 'number'
+  input: string,        // 'text' | 'number' | 'select'
+  unit?: string,        // 'mm' | etc.
+  required: boolean,    // Validation flag
+  step: string,         // 'application' | 'geometry' | 'materials' | 'advanced'
+  subsection?: string,  // For advanced step
+  options?: array,      // For select inputs
+  validation?: object,  // { min, max }
+  placeholder?: string
+}
+```
+
+### 10.2 Configuration Steps
+
+#### Step 1: Application
+- Part Number (PN)
+- Surface Treatment (ST)
+- Number of Blocks (NOB)
+
+#### Step 2: Geometry
+- Main Dimensions: H, L, W, L1, B, C
+- Optional Dimensions: L2, K, N, C2, W1, W2, H1, F, G
+
+#### Step 3: Materials
+- Lubrication Units (MX)
+- Grease Type (GREASE)
+
+#### Step 4: Fine Tuning (Advanced)
+- **Additional Dimensions**: Sxl, Cb, (l1), Ca, d1×d2×h
+- **Alterations**: Tapped Holes (ALT1), Rail Ends Cut (ALT2), Additional Blocks (ALT4)
+
+### 10.3 Validation System
+
+**Validation Functions**:
+- `validateParameter(param, value)` - Single parameter validation
+- `validateStep(stepId, values)` - Step-level validation
+- `getStepStatus(stepId, values)` - Returns 'complete' | 'incomplete' | 'invalid'
+
+**Example**:
+```javascript
+const result = validateParameter(PARAMETERS.H, 25);
+// { valid: true }
+
+const result = validateParameter(PARAMETERS.H, -5);
+// { valid: false, error: "H must be at least 0" }
+```
+
+---
+
+## 11. Development Workflow
+
+### 11.1 Environment Setup
+
+**Prerequisites**:
+- Node.js >= 18.x
+- npm >= 9.x
+
+**Installation**:
+```bash
+cd frontend
+npm install
+```
+
+### 11.2 Development Server
+
+**Start Dev Server**:
+```bash
+npm run dev
+```
+
+**Access**: `http://localhost:5173`
+
+**Features**:
+- Hot Module Replacement (HMR)
+- Fast Refresh for React
+- Source maps
+
+### 11.3 Code Quality
+
+**Linting**:
+```bash
+npm run lint
+```
+
+**ESLint Configuration**: [eslint.config.js](file:///c:/Users/shashank/Desktop/SKF3/frontend/eslint.config.js)
+
+### 11.4 Git Workflow
+
+**Branch Strategy**:
+- `main` - Production-ready code
+- `develop` - Integration branch
+- `feature/*` - Feature branches
+- `bugfix/*` - Bug fix branches
+
+**Commit Convention**:
+```
+feat: Add dimension annotation feature
+fix: Resolve 3D viewer memory leak
+docs: Update API documentation
+style: Format InputPanel component
+refactor: Simplify validation logic
+test: Add unit tests for parameters
+```
+
+---
+
+## 12. Build & Deployment
+
+### 12.1 Production Build
+
+**Build Command**:
+```bash
+npm run build
+```
+
+**Output**: `dist/` directory
+
+**Build Artifacts**:
+- Minified JavaScript bundles
+- Optimized CSS
+- Compressed assets
+- Source maps (optional)
+
+### 12.2 Build Configuration
+
+**Vite Config**: [vite.config.js](file:///c:/Users/shashank/Desktop/SKF3/frontend/vite.config.js)
+
+```javascript
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser'
+  }
+});
+```
+
+### 12.3 Deployment
+
+**Static Hosting Options**:
+- Vercel
+- Netlify
+- AWS S3 + CloudFront
+- Azure Static Web Apps
+
+**Deployment Steps**:
+1. Run production build
+2. Upload `dist/` contents to hosting provider
+3. Configure routing (SPA fallback to `index.html`)
+4. Set environment variables (if applicable)
+
+### 12.4 Environment Variables
+
+**Development** (`.env.development`):
+```
+VITE_API_URL=http://localhost:3000
+VITE_MODEL_PATH=/models
+```
+
+**Production** (`.env.production`):
+```
+VITE_API_URL=https://api.skf.com
+VITE_MODEL_PATH=https://cdn.skf.com/models
+```
+
+---
+
+## 13. Performance Optimization
+
+### 13.1 Code Splitting
+
+**Route-based Splitting**:
+```javascript
+const Home = lazy(() => import('./pages/Home'));
+const Configurator = lazy(() => import('./pages/Configurator'));
+```
+
+### 13.2 Asset Optimization
+
+- **Images**: WebP format with fallbacks
+- **3D Models**: Compressed GLB files
+- **Fonts**: Subset and preload critical fonts
+
+### 13.3 Rendering Optimization
+
+- **React.memo**: Memoize expensive components
+- **useMemo/useCallback**: Prevent unnecessary re-renders
+- **Virtual Scrolling**: For large parameter lists
+
+### 13.4 3D Viewer Performance
+
+- **Model LOD**: Level-of-detail for complex models
+- **Frustum Culling**: Only render visible objects
+- **Texture Compression**: Use compressed texture formats
+
+---
+
+## 14. Browser Compatibility
+
+### 14.1 Supported Browsers
+
+| Browser | Minimum Version |
+|---------|----------------|
+| Chrome | 90+ |
+| Firefox | 88+ |
+| Safari | 14+ |
+| Edge | 90+ |
+
+### 14.2 Required Features
+
+- ES6+ JavaScript
+- CSS Grid & Flexbox
+- WebGL 2.0 (for 3D rendering)
+- LocalStorage API
+
+### 14.3 Polyfills
+
+Vite automatically includes necessary polyfills for target browsers.
+
+---
+
+## 15. Maintenance & Support
+
+### 15.1 Dependency Updates
+
+**Check for Updates**:
+```bash
+npm outdated
+```
+
+**Update Dependencies**:
+```bash
+npm update
+```
+
+**Major Version Updates**:
+```bash
+npm install <package>@latest
+```
+
+### 15.2 Known Issues
+
+> [!NOTE]
+> Track known issues in GitHub Issues or project management tool
+
+### 15.3 Troubleshooting
+
+#### 3D Viewer Not Loading
+- Check browser WebGL support
+- Verify model file path
+- Check console for errors
+
+#### Theme Not Persisting
+- Verify LocalStorage is enabled
+- Check browser privacy settings
+
+#### Build Failures
+- Clear `node_modules` and reinstall
+- Check Node.js version compatibility
+- Review ESLint errors
+
+### 15.4 Contact & Support
+
+**Development Team**:
+- Frontend Lead: [Contact Info]
+- Backend Integration: [Contact Info]
+- DevOps: [Contact Info]
+
+**Documentation Updates**:
+- Last reviewed: January 7, 2026
+- Next review: Quarterly
+
+---
+
+## Appendix A: Component API Reference
+
+### InputPanel Component
+
+**Props**: None
+
+**State**:
+- `currentStep` (number): Active step index (0-3)
+- `formValues` (object): Parameter values
+- `errors` (object): Validation errors
+
+**Methods**:
+- `handleInputChange(key, value)`: Update parameter value
+- `handleStepChange(stepIndex)`: Navigate to step
+- `validateCurrentStep()`: Validate active step
+
+### Preview3D Component
+
+**Props**:
+- `modelPath` (string, optional): Path to 3D model
+
+**State**:
+- `viewer` (Viewer): xeokit viewer instance
+- `sectionEnabled` (boolean): Section view toggle
+- `dimensionsVisible` (boolean): Dimension annotations toggle
+
+**Methods**:
+- `loadModel(path)`: Load 3D model
+- `toggleSection()`: Enable/disable section view
+- `resetCamera()`: Reset camera to default position
+
+---
+
+## Appendix B: CSS Class Reference
+
+### Utility Classes
+
+```css
+.container { max-width: 1200px; margin: 0 auto; }
+.section-alt { background: var(--color-surface); }
+.text-gradient { background: linear-gradient(...); }
+.glass-effect { backdrop-filter: blur(10px); }
+```
+
+### Component Classes
+
+```css
+.input-panel { /* InputPanel container */ }
+.step-indicator { /* Step progress UI */ }
+.preview-canvas { /* 3D viewer canvas */ }
+.floating-toolbar { /* 3D viewer controls */ }
+```
+
+---
+
+## Appendix C: API Integration Points
+
+> [!IMPORTANT]
+> Backend API integration is planned for future releases
+
+**Planned Endpoints**:
+- `POST /api/configure` - Submit configuration
+- `GET /api/models/:id` - Fetch 3D model
+- `POST /api/export` - Generate CAD file
+
+---
+
+**Document Version**: 1.0  
+**Generated**: January 7, 2026  
+**Format**: Markdown (GitHub Flavored)
