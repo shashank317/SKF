@@ -22,7 +22,8 @@ import {
 } from "@xeokit/xeokit-sdk";
 import "./Preview3D.css";
 
-const modelPath = "/SSELBWN14-110.glb";
+// Resolve the GLB via the bundler so it works after static deployment.
+const modelPath = new URL("../../assets/SSELBWN14-110.glb", import.meta.url).href;
 
 const Preview3D = ({ showModel }) => {
     const canvasRef = useRef(null);
