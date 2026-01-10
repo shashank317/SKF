@@ -3,6 +3,7 @@ import Preview3D from "../components/configurator/Preview3D";
 import InputPanel from "../components/configurator/InputPanel";
 import logo from "../assets/CLOGO.png";
 import "./Configurator.css";
+import { createConfiguration } from "../services/api";
 
 function Configurator() {
     const [formState, setFormState] = useState({});
@@ -12,8 +13,26 @@ function Configurator() {
     const [isModelVisible, setIsModelVisible] = useState(false);
     const containerRef = useRef(null);
 
-    const handleApply = () => {
-        setIsModelVisible(true);
+    const handleApply = async () => {
+        try {
+            console.log("Saving configuration...", formState);
+            // Default params structure required by backend
+            const payload = {
+                part_number: formState.part_number || "UNKNOWN",
+                surface_treatment: formState.surface_treatment,
+                number_of_blocks: formState.number_of_blocks ? parseInt(formState.number_of_blocks) : undefined,
+                geometry_params: { ...formState }, // Sending all as geometry for now if specific mapping isn't there
+                status: "draft"
+            };
+
+            const response = await createConfiguration(payload);
+            console.log("Configuration saved:", response);
+            setIsModelVisible(true);
+            alert("Configuration saved to backend! ID: " + response.id);
+        } catch (error) {
+            console.error("Failed to save configuration:", error);
+            alert("Error saving to backend: " + error.message);
+        }
     };
 
     const handleParamChange = (key, value) => {
