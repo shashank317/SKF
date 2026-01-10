@@ -1,24 +1,16 @@
-from sqlalchemy.orm import Session
+"""
+Database session dependency
+Path: app/db/session.py
+"""
 from app.core.database import SessionLocal
 
 def get_db():
     """
     Dependency that provides a database session.
-
-    usage in routes:
-        @app.get("/users")
-        def get_users(db: Session = Depends(get_db)):
-            #db is now a database session
-            users = db.query(User).all()
-            return users    
-    
-    
+    Automatically closes the session after request is complete.
     """
-
     db = SessionLocal()
     try:
-        yield db #pauses the function until the db session is used
+        yield db
     finally:
         db.close()
-
-    
