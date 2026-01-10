@@ -1,27 +1,40 @@
 from sqlalchemy.orm import Session
 from app.db.models import Configuration
 from app.schemas.configuration import ConfigurationCreate, ConfigurationUpdate
+from fastapi import HTTPException, status
 
 def create_configuration(db: Session, config: ConfigurationCreate):
-    """
-    Create a new configuration in database
+    # --- RULE 1: Check Number of Blocks ---
+    # We pretend SKF only allows max 10 blocks on a rail.
+    """Create a new configuration"""
+    if config.number_of_blocks is not None and config.number_of_blocks >10:
+        raise HTTPException(
+            status_code=400,
+            detail="Engineering Error: Maximum 10 blocks allowed per rail."
+        )
     
-    Args:
-        db: database session
-        config: pydantic schema with data to save
-        
-    Returns:
-        Configuration: the created database object
-    """
-    # convert pydantic schema to dict
+    # --- RULE 2: Grease Logic ---
+    # Example: If grease is 'High Temp', you can't use standard seals (mx-1)
+    # (We are just making this up for the demo, but this is where the logic lives)
+    if config.material_params:
+        grease = config.material_params.get("GREASE")
+        if grease =="LGHP 2" and config.surface_treatment == "standard":
+            pass
+
+    # --- IF RULES PASS, SAVE IT ---
     db_config = Configuration(**config.model_dump())
-    
-    # add to database
     db.add(db_config)
-    db.commit()  # save to database
-    db.refresh(db_config)  # reload to get id, timestamps
-    
+    db.commit()
+    db.refresh(db_config)
     return db_config
+
+
+
+  
+
+
+
+
 
 def get_configuration(db: Session, config_id: int):
     """Get single configuration by ID"""

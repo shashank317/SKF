@@ -18,10 +18,18 @@ def create_export(db: Session, export: ExportCreate) -> Export:
     db_export = Export(
         configuration_id=export.configuration_id,
         format=export.format,
-        status="pending"  # Default status
+        status="processing"  # Default status
     )
     
     db.add(db_export)
+    db.commit()
+    db.refresh(db_export)
+
+    fake_file_url = f"/downloads/skf_config_{export.configuration_id}.{export.format.lower()}"
+    
+    # Update the record to say "Done!"
+    db_export.status = "completed"
+    db_export.file_path = fake_file_url
     db.commit()
     db.refresh(db_export)
     

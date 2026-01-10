@@ -21,11 +21,12 @@ import {
     FastNavPlugin
 } from "@xeokit/xeokit-sdk";
 import "./Preview3D.css";
+import { createExport } from "../../services/api";
 
 // Resolve the GLB via the bundler so it works after static deployment.
 const modelPath = new URL("../../assets/SSELBWN14-110.glb", import.meta.url).href;
 
-const Preview3D = ({ showModel }) => {
+const Preview3D = ({ showModel, configId }) => {
     const canvasRef = useRef(null);
     const viewerRef = useRef(null);
     const [sectionEnabled, setSectionEnabled] = useState(false);
@@ -35,6 +36,41 @@ const Preview3D = ({ showModel }) => {
     const sectionPlanesPluginRef = useRef(null);
     const measurementsPluginRef = useRef(null);
     const measurementControlRef = useRef(null);
+
+    // Download handler
+    const handleDownload = async () => {
+        if (!configId) {
+            alert("Please apply the configuration first to generate the CAD file.");
+            return;
+        }
+
+        try {
+            console.log("Initiating export for Config ID:", configId);
+            const response = await createExport({
+                configuration_id: configId,
+                format: "STEP"
+            });
+
+            console.log("Export response:", response);
+
+            if (response.status === "completed" && response.file_path) {
+                // In a real app, this would be a real S3/Server URL.
+                // Since we are mocking it, we will just alert the user or log it.
+                // But to make it feel real, let's pretend to download.
+
+                alert(`Success! CAD File Ready: ${response.file_path}`);
+
+                // If it were a real link, we would do this:
+                // window.open(response.file_path, "_blank");
+            } else {
+                alert("Export started... please check back later.");
+            }
+
+        } catch (error) {
+            console.error("Export failed:", error);
+            alert("Failed to generate download: " + error.message);
+        }
+    };
 
     useEffect(() => {
         if (!showModel) {
@@ -285,12 +321,7 @@ const Preview3D = ({ showModel }) => {
                 <div className="flex items-center gap-3">
                     <button
                         className="download-cad-btn"
-                        onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = modelPath;
-                            link.download = 'SSELBWN14-110.glb';
-                            link.click();
-                        }}
+                        onClick={handleDownload}
                     >
                         <Download className="w-4 h-4" />
                         <span>Download CAD</span>

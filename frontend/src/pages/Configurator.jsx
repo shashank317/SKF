@@ -12,6 +12,7 @@ function Configurator() {
     const [activeTab, setActiveTab] = useState(null); // null = no tab panel open
     const [isModelVisible, setIsModelVisible] = useState(false);
     const containerRef = useRef(null);
+    const [configId, setConfigId] = useState(null); // <--- ADD THIS
 
     const handleApply = async () => {
         try {
@@ -27,6 +28,7 @@ function Configurator() {
 
             const response = await createConfiguration(payload);
             console.log("Configuration saved:", response);
+            setConfigId(response.id);
             setIsModelVisible(true);
             alert("Configuration saved to backend! ID: " + response.id);
         } catch (error) {
@@ -142,7 +144,7 @@ function Configurator() {
 
                 {/* Right: 3D Preview */}
                 <section className="result-panel result-panel-3d">
-                    <Preview3D showModel={isModelVisible} />
+                    <Preview3D showModel={isModelVisible} configId={configId} />
                 </section>
             </div>
 
