@@ -5,7 +5,7 @@ from pathlib import Path
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-FRONTEND_PARAMS_PATH = BASE_DIR / "frontend/src/constants/parameters.js"
+FRONTEND_PARAMS_PATH = BASE_DIR / "frontend/src/constants/parameters_linear.js"
 BACKEND_OUTPUT_PATH = BASE_DIR / "backend/app/schemas/configuration_auto.py"
 
 def parse_js_file(file_path):
