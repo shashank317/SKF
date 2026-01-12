@@ -234,21 +234,21 @@
 /* NavCube canvas */
 .navcube-canvas {
     position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 200px;
-    height: 200px;
-    z-index: 100;
+    top: 2rem;
+    left: 93%;
+    transform: translateX(-50%);
+    z-index: 5;
+    pointer-events: auto;
 }
 
 /* AxisGizmo canvas */
 .axisgizmo-canvas {
     position: absolute;
-    bottom: 20px;
+    bottom: 80px;
     left: 20px;
     width: 120px;
     height: 120px;
-    z-index: 100;
+    z-index: 5;
 }
 
 /* ============================================
@@ -352,8 +352,8 @@
 
 .floating-dock {
     position: absolute;
-    bottom: 2rem;
-    left: 50%;
+    top: 6rem;
+    left: 13%;
     transform: translateX(-50%);
     z-index: 40;
     pointer-events: auto;
@@ -402,7 +402,7 @@
 }
 
 .dock-btn:hover {
-    background: #f1f5f9;
+    background: #5cdddd;
 }
 
 .dock-btn.active {

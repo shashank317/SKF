@@ -22,7 +22,9 @@ function Configurator() {
     // Model Paths
     const MODEL_PATHS = {
         LINEAR_GUIDE: "/SSELBWN14-110.glb",
-        HEX_BOLT: "/structural_hex_bolt.glb"
+        HEX_BOLT: "/structural_hex_bolt.glb",
+        ALLEN_BOLT: "/M10_Allen_bolt.glb",
+        M8_BOLT: "/M8x16.glb"
     };
 
     const activeModelUrl = MODEL_PATHS[activeSchemaId];
@@ -137,6 +139,8 @@ function Configurator() {
                         >
                             <option value="LINEAR_GUIDE">Linear Guide Systems</option>
                             <option value="HEX_BOLT">Structural Hex Bolts (ISO)</option>
+                            <option value="ALLEN_BOLT">M10 Allen Bolt</option>
+                            <option value="M8_BOLT">M8x16 Bolt</option>
                         </select>
                     </div>
                 </div>
@@ -182,7 +186,10 @@ function Configurator() {
                         showModel={isModelVisible}
                         configId={configId}
                         modelUrl={activeModelUrl}
-                        modelScale={activeSchemaId === 'HEX_BOLT' ? [1000, 1000, 1000] : [1, 1, 1]}
+                        modelScale={
+                            ['HEX_BOLT', 'ALLEN_BOLT', 'M8_BOLT'].includes(activeSchemaId) ? [1000, 1000, 1000] :
+                                [1, 1, 1]
+                        }
                     />
                 </section>
             </div>

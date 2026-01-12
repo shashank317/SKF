@@ -15,7 +15,7 @@ import {
     SectionPlanesPlugin,
     DistanceMeasurementsPlugin,
     DistanceMeasurementsMouseControl,
-    PointerLens,
+
     NavCubePlugin,
     AxisGizmoPlugin,
     FastNavPlugin
@@ -62,159 +62,226 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
         }
     };
 
+    // Serialize modelScale to prevent unnecessary reloads when parent re-renders (e.g. on resize)
+    const modelScaleStr = JSON.stringify(modelScale || [1, 1, 1]);
+
     useEffect(() => {
         if (!showModel || !modelUrl) {
             if (viewerRef.current) {
-                viewerRef.current.destroy();
+                console.log("🧹 Cleanup: Destroying existing viewer (no model)");
+                try { viewerRef.current.destroy(); } catch (e) { console.warn("Error destroying viewer", e); }
                 viewerRef.current = null;
             }
             return;
         }
 
-        if (viewerRef.current) {
-            viewerRef.current.destroy();
-            viewerRef.current = null;
-        }
-
+        let isMounted = true;
         let modelRef = null;
         let timeoutId = null;
 
+        // Parse scale back from string to ensure value stability
+        const currentScale = JSON.parse(modelScaleStr);
+
+        // Cleanup function
+        const cleanup = () => {
+            console.log("🧹 Running cleanup sequence...");
+            if (timeoutId) clearTimeout(timeoutId);
+
+            // Explicitly destroy model first if exists
+            if (modelRef) {
+                try { modelRef.destroy(); } catch (e) { console.warn("Error destroying model", e); }
+                modelRef = null;
+            }
+
+            // Destroy viewer plugins manually to be safe
+            if (measurementsPluginRef.current) {
+                try { measurementsPluginRef.current.destroy(); } catch (e) { }
+                measurementsPluginRef.current = null;
+            }
+            if (sectionPlanesPluginRef.current) {
+                try { sectionPlanesPluginRef.current.destroy(); } catch (e) { }
+                sectionPlanesPluginRef.current = null;
+            }
+
+            // Destroy viewer
+            if (viewerRef.current) {
+                try { viewerRef.current.destroy(); } catch (e) { console.warn("Error destroying viewer", e); }
+                viewerRef.current = null;
+            }
+        };
+
+        // Ensure clean slate
+        cleanup();
+
         const initializeViewer = () => {
-            console.log("🎬 Initializing xeokit viewer with scale:", modelScale);
+            if (!isMounted) return;
+            console.log("🎬 Initializing xeokit viewer with scale:", currentScale);
 
-            if (viewerRef.current) return;
-
-            const viewer = new Viewer({
-                canvasElement: canvasRef.current,
-                transparent: true,
-                backgroundColor: [248, 250, 252],
-                units: "millimeters"
-            });
-
-            viewerRef.current = viewer;
-
-            // Camera setup
-            viewer.camera.eye = [3, 3, 3];
-            viewer.camera.look = [0, 0, 0];
-            viewer.camera.up = [0, 1, 0];
-
-            viewer.cameraControl.panEnabled = true;
-            viewer.cameraControl.rotateEnabled = true;
-            viewer.cameraControl.zoomEnabled = true;
-
-            const gltfLoader = new GLTFLoaderPlugin(viewer);
-
-            const model = gltfLoader.load({
-                id: "bearing",
-                src: modelUrl,
-                edges: true,
-                scale: modelScale, // CRITICAL: Apply scale here during load
-                saoEnabled: false,
-                pbrEnabled: false,
-                backfaces: true
-            });
-
-            modelRef = model;
-
-            model.on("loaded", () => {
-                if (!viewerRef.current) return;
-                console.log("✅ Model loaded successfully!");
-                console.log("📏 Model AABB:", model.aabb);
-
-                if (timeoutId) clearTimeout(timeoutId);
-                setIsLoading(false);
-
-                // Fit camera to model
-                // Since we scaled it correctly via loader, the AABB is correct.
-                viewer.cameraFlight.flyTo({
-                    modelId: model.id,
-                    fit: true,
-                    fitFOV: 45,
-                    duration: 1
+            try {
+                const viewer = new Viewer({
+                    canvasElement: canvasRef.current,
+                    transparent: true,
+                    backgroundColor: [248, 250, 252],
+                    units: "millimeters"
                 });
-            });
 
-            model.on("error", (error) => {
-                console.error("❌ Error loading model:", error);
-                if (timeoutId) clearTimeout(timeoutId);
-                setIsLoading(false);
-                setActiveInstruction({
-                    icon: <Info className="w-5 h-5 text-red-500" />,
-                    text: "Load Error",
-                    subtext: "Could not load 3D model"
+                viewerRef.current = viewer;
+
+                // Camera setup
+                viewer.camera.eye = [3, 3, 3];
+                viewer.camera.look = [0, 0, 0];
+                viewer.camera.up = [0, 1, 0];
+
+                viewer.cameraControl.panEnabled = true;
+                viewer.cameraControl.rotateEnabled = true;
+                viewer.cameraControl.zoomEnabled = true;
+
+                // Set up Plugins immediately
+                const measurementsPlugin = new DistanceMeasurementsPlugin(viewer);
+                measurementsPluginRef.current = measurementsPlugin;
+
+                const measurementControl = new DistanceMeasurementsMouseControl(measurementsPlugin, {});
+                measurementControl.snapToVertex = true;
+                measurementControl.snapToEdge = true;
+                measurementControlRef.current = measurementControl;
+
+                const sectionPlanesPlugin = new SectionPlanesPlugin(viewer, { overviewVisible: false });
+                sectionPlanesPluginRef.current = sectionPlanesPlugin;
+                sectionPlanesPlugin.createSectionPlane({
+                    id: "mySectionPlane",
+                    pos: [0, 0, 0],
+                    dir: [1, 0, 0],
+                    active: false
                 });
-            });
 
-            // Failsafe timeout
-            timeoutId = setTimeout(() => {
-                console.warn("⚠️ Model load timed out - check network or console for errors");
-                setIsLoading(false);
-                setActiveInstruction({
-                    icon: <Info className="w-5 h-5 text-orange-500" />,
-                    text: "Load Warning",
-                    subtext: "Model taking longer than expected"
+                new NavCubePlugin(viewer, {
+                    canvasId: "navCubeCanvas",
+                    visible: true,
+                    cameraFly: true,
+                    cameraFitFOV: 45,
+                    cameraFlyDuration: 0.5,
+                    fitVisible: false,
+                    shadowVisible: true
                 });
-            }, 15000);
 
-            // Plugins
-            const measurementsPlugin = new DistanceMeasurementsPlugin(viewer);
-            measurementsPluginRef.current = measurementsPlugin;
+                new AxisGizmoPlugin(viewer, { canvasId: "axisGizmoCanvas" });
 
-            const pointerLens = new PointerLens(viewer);
-            const measurementControl = new DistanceMeasurementsMouseControl(measurementsPlugin, {
-                pointerLens: pointerLens
-            });
-            measurementControl.snapToVertex = true;
-            measurementControl.snapToEdge = true;
-            measurementControlRef.current = measurementControl;
+                new FastNavPlugin(viewer, {
+                    hideEdges: true,
+                    hideSAO: true,
+                    hidePBR: false,
+                    hideColorTexture: false,
+                    hideTransparentObjects: false,
+                    scaleCanvasResolution: true,
+                    scaleCanvasResolutionFactor: 0.7,
+                    delayBeforeRestore: true,
+                    delayBeforeRestoreSeconds: 0.5
+                });
 
-            const sectionPlanesPlugin = new SectionPlanesPlugin(viewer, { overviewVisible: false });
-            sectionPlanesPluginRef.current = sectionPlanesPlugin;
-            sectionPlanesPlugin.createSectionPlane({
-                id: "mySectionPlane",
-                pos: [0, 0, 0],
-                dir: [1, 0, 0],
-                active: false
-            });
+                // Load Model
+                const gltfLoader = new GLTFLoaderPlugin(viewer);
 
-            new NavCubePlugin(viewer, {
-                canvasId: "navCubeCanvas",
-                visible: true,
-                cameraFly: true,
-                cameraFitFOV: 45,
-                cameraFlyDuration: 0.5,
-                fitVisible: false,
-                shadowVisible: true
-            });
+                console.log(`📥 Loading model: ${modelUrl}`);
+                const model = gltfLoader.load({
+                    id: "bearing",
+                    src: modelUrl,
+                    edges: true,
+                    scale: currentScale,
+                    saoEnabled: false,
+                    pbrEnabled: false,
+                    backfaces: true
+                });
 
-            new AxisGizmoPlugin(viewer, { canvasId: "axisGizmoCanvas" });
+                modelRef = model;
 
-            new FastNavPlugin(viewer, {
-                hideEdges: true,
-                hideSAO: true,
-                hidePBR: false,
-                hideColorTexture: false,
-                hideTransparentObjects: false,
-                scaleCanvasResolution: true,
-                scaleCanvasResolutionFactor: 0.7,
-                delayBeforeRestore: true,
-                delayBeforeRestoreSeconds: 0.5
-            });
+                model.on("loaded", () => {
+                    if (!isMounted || !viewerRef.current) return;
+                    console.log("✅ Model loaded successfully!");
+                    console.log("📏 Model AABB:", model.aabb);
+                    console.log("📐 Model center:", model.center);
+                    console.log("🔢 Num objects:", Object.keys(model.objects || {}).length);
+
+                    // Check if model is far from origin and recenter camera appropriately
+                    const aabb = model.aabb;
+                    const centerX = (aabb[0] + aabb[3]) / 2;
+                    const centerY = (aabb[1] + aabb[4]) / 2;
+                    const centerZ = (aabb[2] + aabb[5]) / 2;
+
+                    console.log("📍 Calculated center:", [centerX, centerY, centerZ]);
+
+                    // Calculate model dimensions
+                    const sizeX = aabb[3] - aabb[0];
+                    const sizeY = aabb[4] - aabb[1];
+                    const sizeZ = aabb[5] - aabb[2];
+                    const maxSize = Math.max(sizeX, sizeY, sizeZ);
+                    const distance = maxSize * 1.5;
+
+                    console.log("📐 Model size:", [sizeX, sizeY, sizeZ], "Distance:", distance);
+
+                    // Ensure all model objects are visible
+                    Object.values(model.objects || {}).forEach(obj => {
+                        if (obj) {
+                            obj.visible = true;
+                            obj.xrayed = false;
+                            obj.highlighted = false;
+                        }
+                    });
+
+                    if (timeoutId) clearTimeout(timeoutId);
+                    setIsLoading(false);
+
+                    // Position camera looking down at the model from an isometric angle
+                    viewer.camera.eye = [
+                        centerX + distance * 0.7,
+                        centerY + distance * 0.7,
+                        centerZ + distance * 0.7
+                    ];
+                    viewer.camera.look = [centerX, centerY, centerZ];
+                    viewer.camera.up = [0, 1, 0];
+
+                    console.log("📷 Camera eye:", viewer.camera.eye);
+                    console.log("📷 Camera look:", viewer.camera.look);
+
+                    // Fly to the model
+                    viewer.cameraFlight.flyTo({
+                        aabb: model.aabb,
+                        fit: true,
+                        fitFOV: 60,
+                        duration: 0.5
+                    });
+                });
+
+                model.on("error", (error) => {
+                    if (!isMounted) return;
+                    console.error("❌ Error loading model:", error);
+                    if (timeoutId) clearTimeout(timeoutId);
+                    setIsLoading(false);
+                    setActiveInstruction({
+                        icon: <Info className="w-5 h-5 text-red-500" />,
+                        text: "Load Error",
+                        subtext: "Could not load 3D model"
+                    });
+                });
+
+            } catch (err) {
+                console.error("❌ Critical Viewer Error:", err);
+                setIsLoading(false);
+            }
         };
 
         // Check access then init
         setIsLoading(true);
         console.log(`🔍 Checking access to: ${modelUrl}`);
+
         fetch(modelUrl)
             .then(res => {
-                if (!res.ok) throw new Error(res.statusText);
+                if (!isMounted) return;
+                if (!res.ok) throw new Error(res.statusText + " (" + res.status + ")");
                 console.log("✅ File accessible, starting viewer...");
-                return res.blob();
-            })
-            .then(() => {
                 initializeViewer();
             })
             .catch(err => {
+                if (!isMounted) return;
                 console.error("❌ File access check failed:", err);
                 setIsLoading(false);
                 setActiveInstruction({
@@ -222,22 +289,26 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                     text: "File Not Found",
                     subtext: "System could not locate model"
                 });
-                console.warn(`Failed URL: ${modelUrl}`);
             });
 
-        return () => {
-            if (timeoutId) clearTimeout(timeoutId);
-            console.log("🧹 Cleaning up viewer");
+        // Failsafe timeout
+        timeoutId = setTimeout(() => {
+            if (isMounted && isLoading) {
+                console.warn("⚠️ Model load timed out");
+                setIsLoading(false);
+                setActiveInstruction({
+                    icon: <Info className="w-5 h-5 text-orange-500" />,
+                    text: "Load Warning",
+                    subtext: "Model taking longer than expected"
+                });
+            }
+        }, 15000);
 
-            if (modelRef) {
-                try { modelRef.destroy(); } catch (e) { }
-            }
-            if (viewerRef.current) {
-                viewerRef.current.destroy();
-                viewerRef.current = null;
-            }
+        return () => {
+            isMounted = false;
+            cleanup();
         };
-    }, [showModel, modelUrl, modelScale]); // Add modelScale to deps
+    }, [showModel, modelUrl, modelScaleStr]); // Add modelScale to deps
 
     // Prevent default scroll behavior on the canvas
     useEffect(() => {
@@ -355,12 +426,6 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                         <Download className="w-4 h-4" />
                         <span>Download CAD</span>
                     </button>
-                    <div className="status-pill">
-                        <div className={`status-dot ${isLoading ? 'loading' : 'ready'}`} />
-                        <span className="status-text">
-                            {isLoading ? 'Loading Engine' : 'System Ready'}
-                        </span>
-                    </div>
                 </div>
             </div>
 

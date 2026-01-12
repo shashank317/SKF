@@ -66,12 +66,13 @@
 }
 
 /* Ensure configurator-main uses proper grid */
+/* Ensure configurator-main uses proper grid */
 .configurator-main {
     display: grid;
     /* grid-template-columns set via inline style for dynamic resizing */
-    min-height: calc(100vh - 56px - 100px);
-    /* Subtract header + tabs height */
-    max-height: calc(100vh - 56px - 100px);
+    height: calc(100vh - 56px);
+    /* Full height viewport minus header */
+    min-height: 600px;
     position: relative;
 }
 
@@ -85,21 +86,19 @@
    ============================================ */
 
 .bottom-tabs-navigation {
-    position: fixed;
-    bottom: 40px;
-    left: 0;
-    right: 0;
+    position: relative;
     height: 60px;
     background: white;
     border-top: 1px solid var(--border-color);
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    /* Left align tabs */
     gap: 0;
     padding: 0 2rem;
     overflow-x: auto;
     flex-shrink: 0;
-    z-index: 45;
+    z-index: 10;
 }
 
 
@@ -143,16 +142,25 @@
    ============================================ */
 
 .tab-content-panel {
-    position: fixed;
-    bottom: 100px;
-    left: 0;
-    right: 0;
-    height: 300px;
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+    /* Give it some height */
     background: white;
     border-top: 1px solid var(--border-color);
-    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
-    z-index: 40;
-    animation: slideUp 0.3s ease;
+    box-shadow: none;
+    z-index: 10;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 
@@ -240,16 +248,12 @@
    ============================================ */
 
 .configurator-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    position: relative;
     background: white;
     border-top: 1px solid var(--border-color);
-    padding: 0.5rem 2rem;
+    padding: 1rem 2rem;
     text-align: center;
-    z-index: 45;
-    height: 40px;
+    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;

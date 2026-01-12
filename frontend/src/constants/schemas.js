@@ -6,6 +6,8 @@
 
 import { PARAMETERS as LINEAR_PARAMS, STEPS as LINEAR_STEPS } from './parameters_linear';
 import { PARAMETERS as BOLT_PARAMS, STEPS as BOLT_STEPS } from './parameters_fastener';
+import { PARAMETERS as ALLEN_PARAMS, STEPS as ALLEN_STEPS } from './parameters_allen';
+import { PARAMETERS as M8_PARAMS, STEPS as M8_STEPS } from './parameters_m8';
 
 export const SCHEMAS = {
     LINEAR_GUIDE: {
@@ -19,6 +21,18 @@ export const SCHEMAS = {
         name: 'Structural Hex Bolt',
         steps: BOLT_STEPS,
         parameters: BOLT_PARAMS
+    },
+    ALLEN_BOLT: {
+        id: 'allen_bolt',
+        name: 'M10 Allen Bolt',
+        steps: ALLEN_STEPS,
+        parameters: ALLEN_PARAMS
+    },
+    M8_BOLT: {
+        id: 'm8_bolt',
+        name: 'M8x16 Bolt',
+        steps: M8_STEPS,
+        parameters: M8_PARAMS
     }
 };
 
