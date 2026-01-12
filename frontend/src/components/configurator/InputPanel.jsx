@@ -1,17 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Check,
     Lock,
     AlertCircle,
     ChevronDown,
     ChevronRight,
-    Layers,
-    Ruler,
-    Beaker,
-    Sliders
 } from 'lucide-react';
 import {
-    STEPS,
     getParametersByStep,
     getParametersBySubsection,
     getStepStatus,
@@ -129,15 +124,26 @@ const StepHeader = ({ step, status, isLocked, isActive, onClick }) => {
 /* ========================================
    MAIN INPUT PANEL COMPONENT
    ======================================== */
-const InputPanel = ({ values, onChange, onReset, onApply }) => {
-    const [activeStepId, setActiveStepId] = useState('application');
+const InputPanel = ({ schema, values, onChange, onReset, onApply }) => {
+    const [activeStepId, setActiveStepId] = useState(null);
     const [fieldErrors, setFieldErrors] = useState({});
+
+    // Set initial active step when schema loads
+    useEffect(() => {
+        if (schema && schema.steps.length > 0) {
+            setActiveStepId(schema.steps[0].id);
+        }
+    }, [schema]);
+
+    if (!schema) return <div>Loading Configuration...</div>;
+
+    const STEPS = schema.steps || [];
 
     // Check if a step is locked
     const isStepLocked = (stepIndex) => {
         if (stepIndex === 0) return false;
         const previousStep = STEPS[stepIndex - 1];
-        const previousStatus = getStepStatus(previousStep.id, values);
+        const previousStatus = getStepStatus(previousStep.id, values, schema);
         return previousStatus !== 'complete';
     };
 
@@ -153,11 +159,10 @@ const InputPanel = ({ values, onChange, onReset, onApply }) => {
 
     // Render step content
     const renderSectionContent = (stepId) => {
-        const isAdvanced = stepId === 'advanced';
-
-        if (isAdvanced) {
-            const additional = getParametersBySubsection('advanced', 'additional');
-            const alterations = getParametersBySubsection('advanced', 'alterations');
+        // Advanced mode special rendering (Specific to Linear Guide, but we can genericize later)
+        if (stepId === 'advanced') {
+            const additional = getParametersBySubsection('advanced', 'additional', schema);
+            const alterations = getParametersBySubsection('advanced', 'alterations', schema);
 
             return (
                 <div className="advanced-content">
@@ -198,8 +203,8 @@ const InputPanel = ({ values, onChange, onReset, onApply }) => {
         }
 
         // Standard rendering
-        const params = getParametersByStep(stepId);
-        const gridClass = stepId === 'geometry' ? 'cols-3' : 'cols-2';
+        const params = getParametersByStep(stepId, schema);
+        const gridClass = params.length > 4 ? 'cols-3' : 'cols-2';
 
         return (
             <div className={`fields-grid ${gridClass}`}>
@@ -222,7 +227,7 @@ const InputPanel = ({ values, onChange, onReset, onApply }) => {
                 <div className="panel-header-content">
                     <div>
                         <h2 className="panel-title">Configuration</h2>
-                        <p className="panel-subtitle">Configure your product specifications below.</p>
+                        <p className="panel-subtitle">Configure your {schema.name} specifications.</p>
                     </div>
                     {onReset && (
                         <button className="btn btn-reset-panel" onClick={onReset}>
@@ -235,7 +240,7 @@ const InputPanel = ({ values, onChange, onReset, onApply }) => {
             <div className="steps-container-modern">
                 {STEPS.map((step, index) => {
                     const locked = isStepLocked(index);
-                    const status = getStepStatus(step.id, values);
+                    const status = getStepStatus(step.id, values, schema);
                     const isActive = activeStepId === step.id && !locked;
 
                     return (

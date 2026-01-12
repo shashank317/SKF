@@ -4,15 +4,35 @@ import InputPanel from "../components/configurator/InputPanel";
 import logo from "../assets/CLOGO.png";
 import "./Configurator.css";
 import { createConfiguration } from "../services/api";
+import { SCHEMAS, getSchemabyId } from "../constants/schemas";
 
 function Configurator() {
     const [formState, setFormState] = useState({});
+    const [activeSchemaId, setActiveSchemaId] = useState('LINEAR_GUIDE');
     const [leftWidth, setLeftWidth] = useState(30); // Percentage - 30% input, 70% preview
     const [isResizing, setIsResizing] = useState(false);
     const [activeTab, setActiveTab] = useState(null); // null = no tab panel open
     const [isModelVisible, setIsModelVisible] = useState(false);
     const containerRef = useRef(null);
-    const [configId, setConfigId] = useState(null); // <--- ADD THIS
+    const [configId, setConfigId] = useState(null);
+
+    // Get current schema object
+    const currentSchema = SCHEMAS[activeSchemaId];
+
+    // Model Paths
+    const MODEL_PATHS = {
+        LINEAR_GUIDE: "/SSELBWN14-110.glb",
+        HEX_BOLT: "/structural_hex_bolt.glb"
+    };
+
+    const activeModelUrl = MODEL_PATHS[activeSchemaId];
+
+    const handleSchemaChange = (e) => {
+        const newSchemaId = e.target.value;
+        setActiveSchemaId(newSchemaId);
+        setFormState({}); // Clear form on schema change
+        setIsModelVisible(false); // Hide 3D model
+    };
 
     const handleApply = async () => {
         try {
@@ -22,8 +42,10 @@ function Configurator() {
                 part_number: formState.part_number || "UNKNOWN",
                 surface_treatment: formState.surface_treatment,
                 number_of_blocks: formState.number_of_blocks ? parseInt(formState.number_of_blocks) : undefined,
-                geometry_params: { ...formState }, // Sending all as geometry for now if specific mapping isn't there
-                status: "draft"
+                geometry_params: { ...formState },
+                status: "draft",
+                // We might want to send the schema_type if backend supports it later
+                schema_type: activeSchemaId
             };
 
             const response = await createConfiguration(payload);
@@ -105,7 +127,18 @@ function Configurator() {
                 </div>
 
                 <div className="header-right">
-                    {/* Reset button moved to input panel */}
+                    {/* Component Selector */}
+                    <div className="product-selector">
+                        <span className="selector-label">Product Family:</span>
+                        <select
+                            className="schema-select"
+                            value={activeSchemaId}
+                            onChange={handleSchemaChange}
+                        >
+                            <option value="LINEAR_GUIDE">Linear Guide Systems</option>
+                            <option value="HEX_BOLT">Structural Hex Bolts (ISO)</option>
+                        </select>
+                    </div>
                 </div>
             </header>
 
@@ -120,6 +153,7 @@ function Configurator() {
                 {/* Left: Inputs & Actions */}
                 <div className="left-side">
                     <InputPanel
+                        schema={currentSchema}
                         values={formState}
                         onChange={handleParamChange}
                         onReset={handleReset}
@@ -144,7 +178,12 @@ function Configurator() {
 
                 {/* Right: 3D Preview */}
                 <section className="result-panel result-panel-3d">
-                    <Preview3D showModel={isModelVisible} configId={configId} />
+                    <Preview3D
+                        showModel={isModelVisible}
+                        configId={configId}
+                        modelUrl={activeModelUrl}
+                        modelScale={activeSchemaId === 'HEX_BOLT' ? [1000, 1000, 1000] : [1, 1, 1]}
+                    />
                 </section>
             </div>
 

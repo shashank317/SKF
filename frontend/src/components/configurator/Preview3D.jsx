@@ -23,10 +23,7 @@ import {
 import "./Preview3D.css";
 import { createExport } from "../../services/api";
 
-// Resolve the GLB via the bundler so it works after static deployment.
-const modelPath = new URL("../../assets/SSELBWN14-110.glb", import.meta.url).href;
-
-const Preview3D = ({ showModel, configId }) => {
+const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) => {
     const canvasRef = useRef(null);
     const viewerRef = useRef(null);
     const [sectionEnabled, setSectionEnabled] = useState(false);
@@ -54,14 +51,7 @@ const Preview3D = ({ showModel, configId }) => {
             console.log("Export response:", response);
 
             if (response.status === "completed" && response.file_path) {
-                // In a real app, this would be a real S3/Server URL.
-                // Since we are mocking it, we will just alert the user or log it.
-                // But to make it feel real, let's pretend to download.
-
                 alert(`Success! CAD File Ready: ${response.file_path}`);
-
-                // If it were a real link, we would do this:
-                // window.open(response.file_path, "_blank");
             } else {
                 alert("Export started... please check back later.");
             }
@@ -73,7 +63,7 @@ const Preview3D = ({ showModel, configId }) => {
     };
 
     useEffect(() => {
-        if (!showModel) {
+        if (!showModel || !modelUrl) {
             if (viewerRef.current) {
                 viewerRef.current.destroy();
                 viewerRef.current = null;
@@ -81,13 +71,16 @@ const Preview3D = ({ showModel, configId }) => {
             return;
         }
 
-        if (viewerRef.current) return;
+        if (viewerRef.current) {
+            viewerRef.current.destroy();
+            viewerRef.current = null;
+        }
 
         let modelRef = null;
         let timeoutId = null;
 
         const initializeViewer = () => {
-            console.log("🎬 Initializing xeokit viewer...");
+            console.log("🎬 Initializing xeokit viewer with scale:", modelScale);
 
             if (viewerRef.current) return;
 
@@ -113,8 +106,9 @@ const Preview3D = ({ showModel, configId }) => {
 
             const model = gltfLoader.load({
                 id: "bearing",
-                src: modelPath,
+                src: modelUrl,
                 edges: true,
+                scale: modelScale, // CRITICAL: Apply scale here during load
                 saoEnabled: false,
                 pbrEnabled: false,
                 backfaces: true
@@ -125,12 +119,24 @@ const Preview3D = ({ showModel, configId }) => {
             model.on("loaded", () => {
                 if (!viewerRef.current) return;
                 console.log("✅ Model loaded successfully!");
+                console.log("📏 Model AABB:", model.aabb);
+
+                if (timeoutId) clearTimeout(timeoutId);
                 setIsLoading(false);
-                viewer.cameraFlight.flyTo(model);
+
+                // Fit camera to model
+                // Since we scaled it correctly via loader, the AABB is correct.
+                viewer.cameraFlight.flyTo({
+                    modelId: model.id,
+                    fit: true,
+                    fitFOV: 45,
+                    duration: 1
+                });
             });
 
             model.on("error", (error) => {
                 console.error("❌ Error loading model:", error);
+                if (timeoutId) clearTimeout(timeoutId);
                 setIsLoading(false);
                 setActiveInstruction({
                     icon: <Info className="w-5 h-5 text-red-500" />,
@@ -141,16 +147,14 @@ const Preview3D = ({ showModel, configId }) => {
 
             // Failsafe timeout
             timeoutId = setTimeout(() => {
-                if (isLoading) {
-                    console.warn("⚠️ Model load timed out");
-                    setIsLoading(false);
-                    setActiveInstruction({
-                        icon: <Info className="w-5 h-5 text-orange-500" />,
-                        text: "Load Warning",
-                        subtext: "Model taking time to appear"
-                    });
-                }
-            }, 8000);
+                console.warn("⚠️ Model load timed out - check network or console for errors");
+                setIsLoading(false);
+                setActiveInstruction({
+                    icon: <Info className="w-5 h-5 text-orange-500" />,
+                    text: "Load Warning",
+                    subtext: "Model taking longer than expected"
+                });
+            }, 15000);
 
             // Plugins
             const measurementsPlugin = new DistanceMeasurementsPlugin(viewer);
@@ -200,12 +204,11 @@ const Preview3D = ({ showModel, configId }) => {
 
         // Check access then init
         setIsLoading(true);
-        console.log(`🔍 Checking access to: ${modelPath}`);
-        fetch(modelPath)
+        console.log(`🔍 Checking access to: ${modelUrl}`);
+        fetch(modelUrl)
             .then(res => {
                 if (!res.ok) throw new Error(res.statusText);
                 console.log("✅ File accessible, starting viewer...");
-                // initializeViewer(); // Intentionally called here
                 return res.blob();
             })
             .then(() => {
@@ -219,6 +222,7 @@ const Preview3D = ({ showModel, configId }) => {
                     text: "File Not Found",
                     subtext: "System could not locate model"
                 });
+                console.warn(`Failed URL: ${modelUrl}`);
             });
 
         return () => {
@@ -233,7 +237,23 @@ const Preview3D = ({ showModel, configId }) => {
                 viewerRef.current = null;
             }
         };
-    }, [showModel]);
+    }, [showModel, modelUrl, modelScale]); // Add modelScale to deps
+
+    // Prevent default scroll behavior on the canvas
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const handleWheel = (e) => {
+            e.preventDefault();
+        };
+
+        canvas.addEventListener('wheel', handleWheel, { passive: false });
+
+        return () => {
+            canvas.removeEventListener('wheel', handleWheel);
+        };
+    }, [showModel, isLoading]);
 
     const toggleSection = () => {
         if (!sectionPlanesPluginRef.current) return;
@@ -281,9 +301,18 @@ const Preview3D = ({ showModel, configId }) => {
 
     const resetView = () => {
         if (!viewerRef.current) return;
-        viewerRef.current.cameraFlight.flyTo({
-            eye: [3, 3, 3], look: [0, 0, 0], up: [0, 1, 0], duration: 1
-        });
+
+        const scene = viewerRef.current.scene;
+        const model = scene.models["bearing"];
+
+        if (model) {
+            viewerRef.current.cameraFlight.flyTo({
+                modelId: model.id,
+                fit: true,
+                fitFOV: 45,
+                duration: 1
+            });
+        }
     };
 
     if (!showModel) {
