@@ -83,7 +83,7 @@ def list_configurations(
 )
 def get_configuration(
     config_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db)       
 ):
     """
     Get a specific configuration by ID.

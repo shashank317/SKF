@@ -51,9 +51,33 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
             console.log("Export response:", response);
 
             if (response.status === "completed" && response.file_path) {
-                alert(`Success! CAD File Ready: ${response.file_path}`);
+                // Force download by fetching as blob
+                const downloadUrl = `http://localhost:8000${response.file_path}`;
+                console.log("🚀 STARTING DOWNLOAD FLOW for:", downloadUrl);
+
+                try {
+                    const blobResponse = await fetch(downloadUrl);
+                    if (!blobResponse.ok) throw new Error("Fetch failed");
+
+                    const blob = await blobResponse.blob();
+                    const url = window.URL.createObjectURL(blob);
+
+                    console.log("✅ Blob created, clicking link...");
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', response.file_path.split('/').pop());
+                    document.body.appendChild(link);
+                    link.click();
+
+                    // Cleanup
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                } catch (err) {
+                    console.error("❌ Blob download failed, trying direct open...", err);
+                    window.open(downloadUrl, '_blank');
+                }
             } else {
-                alert("Export started... please check back later.");
+                alert("Export started... check back later.");
             }
 
         } catch (error) {

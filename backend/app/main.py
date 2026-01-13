@@ -2,8 +2,10 @@
 FastAPI Main Application
 Path: app/main.py
 """
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.core.database import engine, Base
 from app.core.config import settings
 from app.api.v1.router import api_router
@@ -11,6 +13,10 @@ from app.db import models  # Import models to ensure they're registered
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
+
+# Ensure exports directory exists
+EXPORTS_DIR = Path(__file__).parent.parent / "exports"
+EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Initialize FastAPI application
 app = FastAPI(
@@ -30,6 +36,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files for CAD exports (generated DXF files)
+app.mount("/downloads", StaticFiles(directory=str(EXPORTS_DIR)), name="downloads")
 
 # Include API router with /api/v1 prefix
 app.include_router(api_router, prefix="/api/v1")
