@@ -8,6 +8,7 @@ import { PARAMETERS as LINEAR_PARAMS, STEPS as LINEAR_STEPS } from './parameters
 import { PARAMETERS as BOLT_PARAMS, STEPS as BOLT_STEPS } from './parameters_fastener';
 import { PARAMETERS as ALLEN_PARAMS, STEPS as ALLEN_STEPS } from './parameters_allen';
 import { PARAMETERS as M8_PARAMS, STEPS as M8_STEPS } from './parameters_m8';
+import { PARAMETERS as HYDRAULIC_PARAMS, STEPS as HYDRAULIC_STEPS } from './parameters_hydraulic';
 
 export const SCHEMAS = {
     LINEAR_GUIDE: {
@@ -33,6 +34,12 @@ export const SCHEMAS = {
         name: 'M8x16 Bolt',
         steps: M8_STEPS,
         parameters: M8_PARAMS
+    },
+    HYDRAULIC: {
+        id: 'hydraulic',
+        name: 'Hydraulic Component',
+        steps: HYDRAULIC_STEPS,
+        parameters: HYDRAULIC_PARAMS
     }
 };
 

@@ -171,12 +171,15 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
 
                 const sectionPlanesPlugin = new SectionPlanesPlugin(viewer, { overviewVisible: false });
                 sectionPlanesPluginRef.current = sectionPlanesPlugin;
-                sectionPlanesPlugin.createSectionPlane({
+                const sectionPlane = sectionPlanesPlugin.createSectionPlane({
                     id: "mySectionPlane",
                     pos: [0, 0, 0],
                     dir: [1, 0, 0],
                     active: false
                 });
+
+                // Explicitly disable just in case
+                sectionPlane.active = false;
 
                 new NavCubePlugin(viewer, {
                     canvasId: "navCubeCanvas",

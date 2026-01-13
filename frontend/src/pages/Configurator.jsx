@@ -24,10 +24,83 @@ function Configurator() {
         LINEAR_GUIDE: "/SSELBWN14-110.glb",
         HEX_BOLT: "/structural_hex_bolt.glb",
         ALLEN_BOLT: "/M10_Allen_bolt.glb",
-        M8_BOLT: "/M8x16.glb"
+        M8_BOLT: "/M8x16.glb",
+        HYDRAULIC: "/hydralic.glb"
     };
 
     const activeModelUrl = MODEL_PATHS[activeSchemaId];
+
+    /**
+     * Dynamic 3D Scaling Logic
+     * ========================
+     * Base Reference Calibration:
+     * - LINEAR_GUIDE (SSELBWN14-110.glb): Base Length = 1000mm
+     * - BOLTS: Scale at 1000:1 for unit conversion (model in meters, display in mm)
+     * 
+     * Strategy: Axis Scaling (X-axis stretch for length changes)
+     * Note: This will stretch mounting holes into ovals on very long rails.
+     */
+    const BASE_LENGTHS = {
+        LINEAR_GUIDE: 1000,  // Base model represents 1000mm rail
+        HEX_BOLT: 1,
+        ALLEN_BOLT: 1,
+        M8_BOLT: 1,
+        HYDRAULIC: 1  // No scaling for hydraulic
+    };
+
+    const calculateModelScale = () => {
+        const baseLength = BASE_LENGTHS[activeSchemaId] || 1000;
+
+        // For bolts: Scale based on Diameter (D) and Length (L)
+        // Base Model: M8x16 (D=8mm, L=16mm)
+        // Unit Conversion: Model is likely in meters, so we multiply by 1000 to get to mm, then apply ratio.
+        if (['HEX_BOLT', 'ALLEN_BOLT', 'M8_BOLT'].includes(activeSchemaId)) {
+            const inputL = parseFloat(formState.L);
+            const inputD = parseFloat(formState.D);
+
+            // Defaults if inputs are missing/invalid
+            const targetL = (!isNaN(inputL) && inputL > 0) ? inputL : 16;
+            const targetD = (!isNaN(inputD) && inputD > 0) ? inputD : 8;
+
+            const BASE_L = 16;
+            const BASE_D = 8;
+
+            // Calculate Ratios
+            const ratioL = targetL / BASE_L;
+            const ratioD = targetD / BASE_D;
+
+            // Apply to axes (Assuming Y is Length for bolts, X/Z are Diameter)
+            // We keep the 1000 factor for the meter->mm conversion base
+            const scale = [1000 * ratioD, 1000 * ratioL, 1000 * ratioD];
+            console.log("🔩 Bolt Scale Calculation:", { inputL, inputD, targetL, targetD, ratioL, ratioD, scale });
+            return scale;
+        }
+
+        // For linear guides, scale X-axis based on user input
+        if (activeSchemaId === 'LINEAR_GUIDE') {
+            const inputLength = parseFloat(formState.LS || formState.L);
+
+            // Validation: default to 1.0 if invalid input
+            if (isNaN(inputLength) || inputLength <= 0) {
+                return [1, 1, 1];
+            }
+
+            const scaleX = inputLength / baseLength;
+            // Clamp to reasonable bounds (0.1x to 10x) to prevent extreme distortion
+            const clampedScaleX = Math.max(0.1, Math.min(10, scaleX));
+
+            return [clampedScaleX, 1, 1];
+        }
+
+        // For hydraulic components: No dynamic scaling, just unit conversion
+        if (activeSchemaId === 'HYDRAULIC') {
+            return [1000, 1000, 1000];
+        }
+
+        return [1, 1, 1];
+    };
+
+    const modelScale = calculateModelScale();
 
     const handleSchemaChange = (e) => {
         const newSchemaId = e.target.value;
@@ -141,6 +214,7 @@ function Configurator() {
                             <option value="HEX_BOLT">Structural Hex Bolts (ISO)</option>
                             <option value="ALLEN_BOLT">M10 Allen Bolt</option>
                             <option value="M8_BOLT">M8x16 Bolt</option>
+                            <option value="HYDRAULIC">Hydraulic Component</option>
                         </select>
                     </div>
                 </div>
@@ -186,10 +260,7 @@ function Configurator() {
                         showModel={isModelVisible}
                         configId={configId}
                         modelUrl={activeModelUrl}
-                        modelScale={
-                            ['HEX_BOLT', 'ALLEN_BOLT', 'M8_BOLT'].includes(activeSchemaId) ? [1000, 1000, 1000] :
-                                [1, 1, 1]
-                        }
+                        modelScale={modelScale}
                     />
                 </section>
             </div>
