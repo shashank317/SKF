@@ -48,7 +48,8 @@
 .header-icon {
     width: 1.5rem;
     height: 1.5rem;
-    color: #6366f1;
+    color: #1e3a8a;
+    /* Dark Blue */
 }
 
 .header-subtitle {
@@ -411,7 +412,7 @@
 }
 
 .dock-btn.section-active {
-    background: #6366f1;
+    background: #1e3a8a;
 }
 
 .dock-btn.section-active:hover {
@@ -614,9 +615,10 @@
 }
 
 .placeholder-icon {
-    color: #6366f1;
+    color: #1e3a8a;
+    /* Dark Blue */
     margin-bottom: 1.5rem;
-    filter: drop-shadow(0 10px 15px rgba(99, 102, 241, 0.2));
+    filter: drop-shadow(0 10px 15px rgba(30, 58, 138, 0.2));
     animation: float 6s ease-in-out infinite;
 }
 

@@ -41,7 +41,15 @@
 
 body {
   margin: 0;
-  background-color: var(--bg-primary);
+  /* Global gradient background */
+  background: linear-gradient(to bottom,
+      #ffffff 0%,
+      #EFECE3 30%,
+      #8FABD4 60%,
+      #4A70A9 100%);
+  background-attachment: fixed;
+  /* Keeps gradient fixed while scrolling */
+  min-height: 100vh;
   color: var(--text-primary);
   font-family: system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
@@ -56,7 +64,9 @@ main {
    ========================= */
 section {
   padding-top: 100px;
-  padding-bottom: 100px;
+  padding-bottom: 0;
+  /* Remove bottom padding for seamless sections */
+  margin: 0;
 }
 
 .hero {
@@ -64,6 +74,9 @@ section {
   display: flex;
   padding: 80px 10%;
   gap: 40px;
+  background: transparent;
+  /* Changed to transparent for global gradient */
+  margin-bottom: 0;
 }
 
 .hero-content {
@@ -103,6 +116,36 @@ section {
   /* Taller visual */
   margin-right: -10%;
   /* Bleed off screen like reference */
+}
+
+/* =========================
+   NAVBAR (Explicit Fix)
+   ========================= */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 5%;
+  background: rgba(255, 255, 255, 0.05);
+  /* Transparent glass */
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo-img {
+  height: 40px;
+  width: auto;
+  /* filter: brightness(0) invert(1); Reverted: Logo needs to be visible on light background */
+}
+
+/* If logo is not an image but text, handle that too */
+.logo {
+  color: #ffffff;
 }
 
 /* Badge */
@@ -153,11 +196,11 @@ section {
    ========================= */
 .capabilities {
   align-items: center;
-}
-
-
-.capabilities {
-  padding: 0 10%;
+  background: transparent;
+  /* Reveal global gradient */
+  margin-bottom: 0;
+  padding: 100px 10% 0 10%;
+  /* No bottom padding */
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 60px;
@@ -248,9 +291,11 @@ section {
    WORKFLOW SECTION
    ========================= */
 .workflow {
-  padding: 0 10%;
+  padding: 100px 10%;
+  margin-top: 0;
   border-top: none;
-  /* Removed border-top since divider is used */
+  background: transparent;
+  /* Reveal global gradient */
 }
 
 .workflow-header {
@@ -259,7 +304,8 @@ section {
 
 .workflow-header h2 {
   font-size: 14px;
-  color: var(--accent-color);
+  color: #1e3a8a;
+  /* Dark Blue Theme */
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -280,13 +326,28 @@ section {
 }
 
 .step-number {
-  font-size: 64px;
-  font-weight: bold;
-  color: var(--bg-secondary);
+  font-size: 65px;
+  font-weight: 800;
+  color: #020303;
+  /* Visible Light Blue */
   position: absolute;
-  top: -40px;
-  left: -10px;
+  top: -45px;
+  left: -15px;
   z-index: 0;
+  opacity: 0.8;
+}
+
+/* Animated Step Numbers via ScrollFloat */
+.step-number-animated {
+  font-size: 65px !important;
+  font-weight: 800 !important;
+  color: #03080e !important;
+  position: absolute;
+  top: -45px;
+  left: -15px;
+  z-index: 0;
+  opacity: 0.8;
+  margin: 0;
 }
 
 .step h4 {
@@ -296,16 +357,22 @@ section {
 }
 
 /* Preview Card (Right Box) */
+/* Preview Card (Right Box) */
 .preview-card {
-  background: linear-gradient(to bottom,
-      rgba(255, 255, 255, 0.02),
-      rgba(255, 255, 255, 0));
-  border-color: rgba(255, 255, 255, 0.08);
-  /* Softer border */
-  padding: 28px;
-  max-width: 420px;
-  /* Limit visual height/width */
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
+  /* Subtle glass effect */
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 18px;
+  max-width: 1000px;
+  /* Wider to fit the screenshot */
+  border-radius: 39px;
+  /* Smooth corners */
+}
+
+/* Force image to fit the wider card */
+.preview-card img {
+  width: 100% !important;
 }
 
 .preview-item {
@@ -345,10 +412,14 @@ section {
    ========================= */
 .footer {
   padding: 40px 10%;
-  border-top: 1px solid var(--border-color);
+  margin-top: 0;
+  background: rgba(0, 0, 0, 0.2);
+  /* Slight overlay on top of gradient */
+  color: #ffffff;
   display: flex;
   justify-content: space-between;
   gap: 20px;
+  border-top: none;
 }
 
 .footer-title {
@@ -356,21 +427,22 @@ section {
   font-weight: bold;
   letter-spacing: 2px;
   text-transform: uppercase;
+  color: #ffffff;
 }
 
 .footer-subtitle {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .footer-meta {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .footer-warning {
   font-size: 11px;
-  opacity: 0.5;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* =========================
@@ -485,11 +557,12 @@ section {
 }
 
 .configurator-header {
-  height: 56px;
+  height: 76px;
   padding: 0 2%;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #94b4e4;
   border-bottom: 1px solid var(--border-color);
   font-size: 13px;
 }

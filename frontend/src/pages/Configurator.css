@@ -1,4 +1,73 @@
 /* ============================================
+   HEADER
+   ============================================ */
+
+.configurator-header {
+    height: 64px;
+    background: #1e3a8a;
+    /* CADMAXX Dark Blue */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Product Selector */
+.product-selector {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.selector-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #bfdbfe;
+    /* Light Blue Text */
+}
+
+.schema-select {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.schema-select:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.schema-select option {
+    background: #0f172a;
+    color: white;
+    padding: 10px;
+}
+
+/* ============================================
    RESIZE HANDLE
    ============================================ */
 

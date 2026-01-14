@@ -11,7 +11,7 @@ const cards = [
       <img
         src={configImg}
         alt="Configurator Preview"
-        style={{ width: '200%', borderRadius: '10px', marginTop: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+        style={{ width: '200%', borderRadius: '20px', marginTop: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
       />
     )
   },
@@ -31,7 +31,7 @@ function Capabilities({ className = "" }) {
           stagger={0.03}
           containerClassName="mb-10"
         >
-          Eliminate catalog browsing.
+          Eliminate catalog   browsing.
         </ScrollFloat>
 
         <p>

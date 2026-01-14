@@ -105,15 +105,19 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 2rem;
-    background: #6366f1;
+    background: #4f46e5;
+    /* Vibrant Indigo/Blue */
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: 6px;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.4);
+    width: 100%;
+    justify-content: center;
 }
 
 .btn-apply:hover {
@@ -195,8 +199,23 @@
 }
 
 .step-header.active {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    background: #1e3a8a;
+    /* Dark Blue Active */
+    border-color: #1e3a8a;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+}
+
+.step-header.active .step-title {
+    color: white;
+}
+
+.step-header.active .step-description {
+    color: #93c5fd;
+    /* Light blue text */
+}
+
+.step-header.active .step-chevron {
+    color: white;
 }
 
 .step-header.complete:not(.active) {
@@ -249,8 +268,9 @@
 }
 
 .step-icon-circle.active {
-    background: #3b82f6;
+    background: rgba(255, 255, 255, 0.2);
     color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .step-icon-circle.incomplete {
