@@ -162,9 +162,19 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                 viewer.camera.look = [0, 0, 0];
                 viewer.camera.up = [0, 1, 0];
 
+                // Fix clipping - extend near/far planes to prevent white block cutoff
+                viewer.camera.near = 0.1;      // Very close near plane
+                viewer.camera.far = 100000;    // Very far far plane
+
                 viewer.cameraControl.panEnabled = true;
                 viewer.cameraControl.rotateEnabled = true;
                 viewer.cameraControl.zoomEnabled = true;
+
+                // Zoom limits - prevent zooming too far out or too close
+                viewer.cameraControl.dollyMinSpeed = 0.04;
+                viewer.cameraControl.dollyProximityThreshold = 30;
+                viewer.cameraControl.zoomMinDistance = 50;    // Minimum zoom (closest)
+                viewer.cameraControl.zoomMaxDistance = 2000;  // Maximum zoom (farthest)
 
                 // Set up Plugins immediately
                 const measurementsPlugin = new DistanceMeasurementsPlugin(viewer);
@@ -177,15 +187,7 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
 
                 const sectionPlanesPlugin = new SectionPlanesPlugin(viewer, { overviewVisible: false });
                 sectionPlanesPluginRef.current = sectionPlanesPlugin;
-                const sectionPlane = sectionPlanesPlugin.createSectionPlane({
-                    id: "mySectionPlane",
-                    pos: [0, 0, 0],
-                    dir: [1, 0, 0],
-                    active: false
-                });
-
-                // Explicitly disable just in case
-                sectionPlane.active = false;
+                // Section plane will be created AFTER model loads, positioned based on model bounds
 
                 new NavCubePlugin(viewer, {
                     canvasId: "navCubeCanvas",
@@ -282,6 +284,19 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                         fitFOV: 60,
                         duration: 0.5
                     });
+
+                    // Create section plane AFTER model loads, positioned at model center
+                    // This prevents unwanted clipping when inactive
+                    if (sectionPlanesPluginRef.current && !sectionPlanesPluginRef.current.sectionPlanes["mySectionPlane"]) {
+                        const sectionPlane = sectionPlanesPluginRef.current.createSectionPlane({
+                            id: "mySectionPlane",
+                            pos: [centerX, centerY, centerZ],  // Position at model center
+                            dir: [1, 0, 0],
+                            active: false
+                        });
+                        sectionPlane.active = false;
+                        console.log("✂️ Section plane created at model center:", [centerX, centerY, centerZ]);
+                    }
                 });
 
                 model.on("error", (error) => {
