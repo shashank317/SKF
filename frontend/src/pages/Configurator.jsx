@@ -21,7 +21,7 @@ function Configurator() {
 
     // Model Paths
     const MODEL_PATHS = {
-        LINEAR_GUIDE: "/SSELBWN14-110.glb",
+        LINEAR_GUIDE: "/model.glb",
         HEX_BOLT: "/structural_hex_bolt.glb",
         ALLEN_BOLT: "/M10_Allen_bolt.glb",
         M8_BOLT: "/M8x16.glb",

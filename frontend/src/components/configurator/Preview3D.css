@@ -377,6 +377,36 @@
     transform: scale(1.05);
 }
 
+/* Drag Handle */
+.dock-drag-handle {
+    padding: 0.5rem 0.25rem;
+    cursor: grab;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.dock-drag-handle:hover {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.dock-drag-handle:active {
+    cursor: grabbing;
+}
+
+.floating-dock.dragging {
+    opacity: 0.9;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+.floating-dock.dragging .dock-container {
+    transform: none;
+}
+
 .dock-divider {
     width: 1px;
     height: 2rem;

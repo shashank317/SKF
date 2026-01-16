@@ -7,7 +7,8 @@ import {
     Info,
     Maximize2,
     Settings2,
-    Download
+    Download,
+    GripVertical
 } from "lucide-react";
 import {
     Viewer,
@@ -33,6 +34,11 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
     const sectionPlanesPluginRef = useRef(null);
     const measurementsPluginRef = useRef(null);
     const measurementControlRef = useRef(null);
+
+    // Dock drag state
+    const [dockPosition, setDockPosition] = useState({ x: null, y: null });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragOffset = useRef({ x: 0, y: 0 });
 
     // Download handler
     const handleDownload = async () => {
@@ -413,6 +419,58 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
         }
     };
 
+    // Dock drag handlers
+    const handleDockMouseDown = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+        const dockElement = e.target.closest('.floating-dock');
+        if (dockElement) {
+            const rect = dockElement.getBoundingClientRect();
+            dragOffset.current = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+    };
+
+    const handleDockMouseMove = (e) => {
+        if (!isDragging) return;
+        const parent = canvasRef.current?.parentElement;
+        if (!parent) return;
+
+        const parentRect = parent.getBoundingClientRect();
+        const newX = e.clientX - parentRect.left - dragOffset.current.x;
+        const newY = e.clientY - parentRect.top - dragOffset.current.y;
+
+        setDockPosition({ x: newX, y: newY });
+    };
+
+    const handleDockMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    // Attach global mouse move/up listeners when dragging
+    useEffect(() => {
+        if (isDragging) {
+            document.addEventListener('mousemove', handleDockMouseMove);
+            document.addEventListener('mouseup', handleDockMouseUp);
+            document.body.style.cursor = 'grabbing';
+            document.body.style.userSelect = 'none';
+        } else {
+            document.removeEventListener('mousemove', handleDockMouseMove);
+            document.removeEventListener('mouseup', handleDockMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+
+        return () => {
+            document.removeEventListener('mousemove', handleDockMouseMove);
+            document.removeEventListener('mouseup', handleDockMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+    }, [isDragging]);
+
     if (!showModel) {
         return (
             <div className="preview3d-container placeholder-view">
@@ -443,6 +501,9 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                     </h1>
                     <p className="header-subtitle">
                         SSELBWN14-110 / Engineering View
+                    </p>
+                    <p className="header-subtitle" style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        {isLoading ? 'Scanning model...' : `Objects detected: ${Object.keys(viewerRef.current?.scene?.models["bearing"]?.objects || {}).length}`}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -483,8 +544,24 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                 )}
             </div>
 
-            <div className="floating-dock">
+            <div
+                className={`floating-dock ${isDragging ? 'dragging' : ''}`}
+                style={dockPosition.x !== null ? {
+                    left: `${dockPosition.x}px`,
+                    top: `${dockPosition.y}px`,
+                    transform: 'none'
+                } : {}}
+            >
                 <div className="dock-container">
+                    {/* Drag Handle */}
+                    <div
+                        className="dock-drag-handle"
+                        onMouseDown={handleDockMouseDown}
+                        title="Drag to reposition"
+                    >
+                        <GripVertical className="btn-icon" strokeWidth={1.5} />
+                    </div>
+                    <div className="dock-divider" />
                     <Tooltip text="Section Cut (X-Axis)">
                         <button onClick={toggleSection} className={`dock-btn ${sectionEnabled ? 'active section-active' : ''}`}>
                             <ScanLine className="btn-icon" strokeWidth={1.5} />
