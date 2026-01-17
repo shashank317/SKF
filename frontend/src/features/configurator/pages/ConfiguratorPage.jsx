@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import Preview3D from "../components/configurator/Preview3D";
-import InputPanel from "../components/configurator/InputPanel";
-import logo from "../assets/CLOGO.png";
-import "./Configurator.css";
-import { createConfiguration } from "../services/api";
-import { SCHEMAS, getSchemabyId } from "../constants/schemas";
+import Preview3D from "../components/Preview3D";
+import InputPanel from "../components/InputPanel";
+import logo from "../../../assets/CLOGO.png";
+import "./ConfiguratorPage.css";
+import { createConfiguration } from "../../../services/api";
+import { SCHEMAS, getSchemabyId } from "../../../constants/schemas";
 
-function Configurator() {
+function ConfiguratorPage() {
     const [formState, setFormState] = useState({});
     const [activeSchemaId, setActiveSchemaId] = useState('LINEAR_GUIDE');
     const [leftWidth, setLeftWidth] = useState(30); // Percentage - 30% input, 70% preview
@@ -331,4 +331,4 @@ function Configurator() {
     );
 }
 
-export default Configurator;
+export default ConfiguratorPage;

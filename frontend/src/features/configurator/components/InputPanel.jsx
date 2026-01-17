@@ -11,7 +11,7 @@ import {
     getParametersBySubsection,
     getStepStatus,
     validateParameter
-} from '../../constants/parameters';
+} from '../../../constants/parameters';
 import './InputPanel.css';
 
 /* ========================================

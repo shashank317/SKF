@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
+import LandingPage from "./features/landing/pages/LandingPage";
 import NotFound from "./pages/NotFound";
-import Configurator from "./pages/Configurator";
+import ConfiguratorPage from "./features/configurator/pages/ConfiguratorPage";
 import ConnectionTest from "./components/ConnectionTest";
 
 function App() {
@@ -9,8 +9,8 @@ function App() {
     <BrowserRouter>
       <ConnectionTest />
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/configurator" element={<Configurator />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/configurator" element={<ConfiguratorPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
@@ -18,3 +18,4 @@ function App() {
 }
 
 export default App;
+

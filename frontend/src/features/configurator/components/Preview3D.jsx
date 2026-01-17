@@ -22,7 +22,7 @@ import {
     FastNavPlugin
 } from "@xeokit/xeokit-sdk";
 import "./Preview3D.css";
-import { createExport } from "../../services/api";
+import { createExport } from "../../../services/api";
 
 const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) => {
     const canvasRef = useRef(null);
