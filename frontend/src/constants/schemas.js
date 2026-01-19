@@ -9,6 +9,7 @@ import { PARAMETERS as BOLT_PARAMS, STEPS as BOLT_STEPS } from './parameters_fas
 import { PARAMETERS as ALLEN_PARAMS, STEPS as ALLEN_STEPS } from './parameters_allen';
 import { PARAMETERS as M8_PARAMS, STEPS as M8_STEPS } from './parameters_m8';
 import { PARAMETERS as HYDRAULIC_PARAMS, STEPS as HYDRAULIC_STEPS } from './parameters_hydraulic';
+import { PARAMETERS as LUBRICATION_PARAMS, STEPS as LUBRICATION_STEPS } from './parameters_lubrication';
 
 export const SCHEMAS = {
     LINEAR_GUIDE: {
@@ -40,6 +41,12 @@ export const SCHEMAS = {
         name: 'Hydraulic Component',
         steps: HYDRAULIC_STEPS,
         parameters: HYDRAULIC_PARAMS
+    },
+    LUBRICATION_SYSTEM: {
+        id: 'lubrication_system',
+        name: 'Lubrication System',
+        steps: LUBRICATION_STEPS,
+        parameters: LUBRICATION_PARAMS
     }
 };
 

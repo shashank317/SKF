@@ -35,6 +35,10 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
     const measurementsPluginRef = useRef(null);
     const measurementControlRef = useRef(null);
 
+    // Inspector State
+    const [hoveredEntity, setHoveredEntity] = useState(null);
+    const [selectedEntity, setSelectedEntity] = useState(null);
+
     // Dock drag state
     const [dockPosition, setDockPosition] = useState({ x: null, y: null });
     const [isDragging, setIsDragging] = useState(false);
@@ -57,31 +61,8 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
             console.log("Export response:", response);
 
             if (response.status === "completed" && response.file_path) {
-                // Force download by fetching as blob
                 const downloadUrl = `http://localhost:8000${response.file_path}`;
-                console.log("🚀 STARTING DOWNLOAD FLOW for:", downloadUrl);
-
-                try {
-                    const blobResponse = await fetch(downloadUrl);
-                    if (!blobResponse.ok) throw new Error("Fetch failed");
-
-                    const blob = await blobResponse.blob();
-                    const url = window.URL.createObjectURL(blob);
-
-                    console.log("✅ Blob created, clicking link...");
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', response.file_path.split('/').pop());
-                    document.body.appendChild(link);
-                    link.click();
-
-                    // Cleanup
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                } catch (err) {
-                    console.error("❌ Blob download failed, trying direct open...", err);
-                    window.open(downloadUrl, '_blank');
-                }
+                window.open(downloadUrl, '_blank');
             } else {
                 alert("Export started... check back later.");
             }
@@ -92,14 +73,13 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
         }
     };
 
-    // Serialize modelScale to prevent unnecessary reloads when parent re-renders (e.g. on resize)
+    // Serialize modelScale to prevent unnecessary reloads
     const modelScaleStr = JSON.stringify(modelScale || [1, 1, 1]);
 
     useEffect(() => {
         if (!showModel || !modelUrl) {
             if (viewerRef.current) {
-                console.log("🧹 Cleanup: Destroying existing viewer (no model)");
-                try { viewerRef.current.destroy(); } catch (e) { console.warn("Error destroying viewer", e); }
+                viewerRef.current.destroy();
                 viewerRef.current = null;
             }
             return;
@@ -107,45 +87,15 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
 
         let isMounted = true;
         let modelRef = null;
-        let timeoutId = null;
 
-        // Parse scale back from string to ensure value stability
-        const currentScale = JSON.parse(modelScaleStr);
-
-        // Cleanup function
         const cleanup = () => {
-            console.log("🧹 Running cleanup sequence...");
-            if (timeoutId) clearTimeout(timeoutId);
-
-            // Explicitly destroy model first if exists
-            if (modelRef) {
-                try { modelRef.destroy(); } catch (e) { console.warn("Error destroying model", e); }
-                modelRef = null;
-            }
-
-            // Destroy viewer plugins manually to be safe
-            if (measurementsPluginRef.current) {
-                try { measurementsPluginRef.current.destroy(); } catch (e) { }
-                measurementsPluginRef.current = null;
-            }
-            if (sectionPlanesPluginRef.current) {
-                try { sectionPlanesPluginRef.current.destroy(); } catch (e) { }
-                sectionPlanesPluginRef.current = null;
-            }
-
-            // Destroy viewer
-            if (viewerRef.current) {
-                try { viewerRef.current.destroy(); } catch (e) { console.warn("Error destroying viewer", e); }
-                viewerRef.current = null;
-            }
+            if (modelRef) modelRef.destroy();
+            if (viewerRef.current) viewerRef.current.destroy();
         };
-
-        // Ensure clean slate
         cleanup();
 
         const initializeViewer = () => {
             if (!isMounted) return;
-            console.log("🎬 Initializing xeokit viewer with scale:", currentScale);
 
             try {
                 const viewer = new Viewer({
@@ -157,26 +107,18 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
 
                 viewerRef.current = viewer;
 
-                // Camera setup
+                // Basic camera setup
                 viewer.camera.eye = [3, 3, 3];
                 viewer.camera.look = [0, 0, 0];
                 viewer.camera.up = [0, 1, 0];
-
-                // Fix clipping - extend near/far planes to prevent white block cutoff
-                viewer.camera.near = 0.1;      // Very close near plane
-                viewer.camera.far = 100000;    // Very far far plane
+                viewer.camera.near = 0.1;
+                viewer.camera.far = 100000;
 
                 viewer.cameraControl.panEnabled = true;
                 viewer.cameraControl.rotateEnabled = true;
                 viewer.cameraControl.zoomEnabled = true;
 
-                // Zoom limits - prevent zooming too far out or too close
-                viewer.cameraControl.dollyMinSpeed = 0.04;
-                viewer.cameraControl.dollyProximityThreshold = 30;
-                viewer.cameraControl.zoomMinDistance = 50;    // Minimum zoom (closest)
-                viewer.cameraControl.zoomMaxDistance = 2000;  // Maximum zoom (farthest)
-
-                // Set up Plugins immediately
+                // Plugins - MUST store in refs for toggle functions to work
                 const measurementsPlugin = new DistanceMeasurementsPlugin(viewer);
                 measurementsPluginRef.current = measurementsPlugin;
 
@@ -187,34 +129,63 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
 
                 const sectionPlanesPlugin = new SectionPlanesPlugin(viewer, { overviewVisible: false });
                 sectionPlanesPluginRef.current = sectionPlanesPlugin;
-                // Section plane will be created AFTER model loads, positioned based on model bounds
 
-                new NavCubePlugin(viewer, {
-                    canvasId: "navCubeCanvas",
-                    visible: true,
-                    cameraFly: true,
-                    cameraFitFOV: 45,
-                    cameraFlyDuration: 0.5,
-                    fitVisible: false,
-                    shadowVisible: true
-                });
-
+                new NavCubePlugin(viewer, { canvasId: "navCubeCanvas", visible: true });
                 new AxisGizmoPlugin(viewer, { canvasId: "axisGizmoCanvas" });
 
-                new FastNavPlugin(viewer, {
-                    hideEdges: true,
-                    hideSAO: true,
-                    hidePBR: false,
-                    hideColorTexture: false,
-                    hideTransparentObjects: false,
-                    scaleCanvasResolution: true,
-                    scaleCanvasResolutionFactor: 0.7,
-                    delayBeforeRestore: true,
-                    delayBeforeRestoreSeconds: 0.5
+                // DEBUG: let's see what xeokit is actually giving us
+                viewer.cameraControl.on("picked", (pickResult) => {
+                    if (!pickResult || !pickResult.entity) return;
+
+                    const entity = pickResult.entity;
+
+                    // FULL DIAGNOSTIC DUMP
+                    console.log("=== PICK DEBUG ===");
+                    console.log("entity.id:", entity.id);
+                    console.log("entity.isMesh:", entity.isMesh);
+                    console.log("entity.isModel:", entity.isModel);
+                    console.log("entity.isObject:", entity.isObject);
+                    console.log("entity.numChildren:", entity.numChildren);
+                    console.log("entity.geometry?.id:", entity.geometry?.id);
+                    console.log("pickResult.worldPos:", pickResult.worldPos);
+                    console.log("entity.parent?.id:", entity.parent?.id); // Added logging for parent ID
+
+                    // List immediate children if any
+                    if (entity.children && entity.children.length > 0) {
+                        console.log("children IDs:", entity.children.map(c => c.id));
+                    }
+
+                    // Only highlight if it's actually a mesh
+                    if (entity.isObject) { // Changed to isObject as xeokit entities are often objects
+                        // Clear previous selection first (optional, user code had highlightedObjectIds logic which might be slightly different API, adjusting to standard xeokit)
+                        // viewer.scene.setObjectsHighlighted(viewer.scene.highlightedObjectIds, false);
+
+                        entity.highlighted = !entity.highlighted;
+
+                        if (entity.highlighted) {
+                            setSelectedEntity(entity.id);
+                            console.log(`✅ Highlighted mesh: ${entity.id}`);
+                        } else {
+                            setSelectedEntity(null);
+                            console.log(`❌ Un-highlighted: ${entity.id}`);
+                        }
+                    } else {
+                        console.log("⚠️ Not a mesh - ignoring click");
+                    }
+                });
+
+                // Hover effect (optional, keep simple for now)
+                viewer.cameraControl.on("hover", (pickResult) => {
+                    if (pickResult && pickResult.entity) {
+                        setHoveredEntity(pickResult.entity.id);
+                    } else {
+                        setHoveredEntity(null);
+                    }
                 });
 
                 // Load Model
                 const gltfLoader = new GLTFLoaderPlugin(viewer);
+                const currentScale = JSON.parse(modelScaleStr);
 
                 console.log(`📥 Loading model: ${modelUrl}`);
                 const model = gltfLoader.load({
@@ -224,133 +195,55 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                     scale: currentScale,
                     saoEnabled: false,
                     pbrEnabled: false,
-                    backfaces: true
+                    backfaces: true,
+                    performance: false, // Force separate objects
+                    combineGeometries: false, // Legacy: prevent merging
+                    quantizeGeometry: false // Prevent vertex quantization which can mess up measurements
                 });
 
                 modelRef = model;
 
                 model.on("loaded", () => {
-                    if (!isMounted || !viewerRef.current) return;
+                    if (!isMounted) return;
                     console.log("✅ Model loaded successfully!");
-                    console.log("📏 Model AABB:", model.aabb);
-                    console.log("📐 Model center:", model.center);
-                    console.log("🔢 Num objects:", Object.keys(model.objects || {}).length);
 
-                    // Check if model is far from origin and recenter camera appropriately
                     const aabb = model.aabb;
-                    const centerX = (aabb[0] + aabb[3]) / 2;
-                    const centerY = (aabb[1] + aabb[4]) / 2;
-                    const centerZ = (aabb[2] + aabb[5]) / 2;
-
-                    console.log("📍 Calculated center:", [centerX, centerY, centerZ]);
-
-                    // Calculate model dimensions
                     const sizeX = aabb[3] - aabb[0];
                     const sizeY = aabb[4] - aabb[1];
                     const sizeZ = aabb[5] - aabb[2];
                     const maxSize = Math.max(sizeX, sizeY, sizeZ);
                     const distance = maxSize * 1.5;
+                    const centerX = (aabb[0] + aabb[3]) / 2;
+                    const centerY = (aabb[1] + aabb[4]) / 2;
+                    const centerZ = (aabb[2] + aabb[5]) / 2;
 
-                    console.log("📐 Model size:", [sizeX, sizeY, sizeZ], "Distance:", distance);
-
-                    // Ensure all model objects are visible
-                    Object.values(model.objects || {}).forEach(obj => {
-                        if (obj) {
-                            obj.visible = true;
-                            obj.xrayed = false;
-                            obj.highlighted = false;
-                        }
-                    });
-
-                    if (timeoutId) clearTimeout(timeoutId);
-                    setIsLoading(false);
-
-                    // Position camera looking down at the model from an isometric angle
-                    viewer.camera.eye = [
-                        centerX + distance * 0.7,
-                        centerY + distance * 0.7,
-                        centerZ + distance * 0.7
-                    ];
+                    viewer.camera.eye = [centerX + distance, centerY + distance, centerZ + distance];
                     viewer.camera.look = [centerX, centerY, centerZ];
-                    viewer.camera.up = [0, 1, 0];
 
-                    console.log("📷 Camera eye:", viewer.camera.eye);
-                    console.log("📷 Camera look:", viewer.camera.look);
+                    viewer.cameraFlight.flyTo({ aabb: model.aabb, fit: true, fitFOV: 60, duration: 0.5 });
 
-                    // Fly to the model
-                    viewer.cameraFlight.flyTo({
-                        aabb: model.aabb,
-                        fit: true,
-                        fitFOV: 60,
-                        duration: 0.5
-                    });
-
-                    // Create section plane AFTER model loads, positioned at model center
-                    // This prevents unwanted clipping when inactive
+                    // Create section plane at model center (inactive by default)
                     if (sectionPlanesPluginRef.current && !sectionPlanesPluginRef.current.sectionPlanes["mySectionPlane"]) {
                         const sectionPlane = sectionPlanesPluginRef.current.createSectionPlane({
                             id: "mySectionPlane",
-                            pos: [centerX, centerY, centerZ],  // Position at model center
+                            pos: [centerX, centerY, centerZ],
                             dir: [1, 0, 0],
                             active: false
                         });
-                        sectionPlane.active = false;
-                        console.log("✂️ Section plane created at model center:", [centerX, centerY, centerZ]);
+                        console.log("✂️ Section plane created at:", [centerX, centerY, centerZ]);
                     }
-                });
 
-                model.on("error", (error) => {
-                    if (!isMounted) return;
-                    console.error("❌ Error loading model:", error);
-                    if (timeoutId) clearTimeout(timeoutId);
                     setIsLoading(false);
-                    setActiveInstruction({
-                        icon: <Info className="w-5 h-5 text-red-500" />,
-                        text: "Load Error",
-                        subtext: "Could not load 3D model"
-                    });
                 });
 
             } catch (err) {
-                console.error("❌ Critical Viewer Error:", err);
+                console.error("Viewer error:", err);
                 setIsLoading(false);
             }
         };
 
-        // Check access then init
         setIsLoading(true);
-        console.log(`🔍 Checking access to: ${modelUrl}`);
-
-        fetch(modelUrl)
-            .then(res => {
-                if (!isMounted) return;
-                if (!res.ok) throw new Error(res.statusText + " (" + res.status + ")");
-                console.log("✅ File accessible, starting viewer...");
-                initializeViewer();
-            })
-            .catch(err => {
-                if (!isMounted) return;
-                console.error("❌ File access check failed:", err);
-                setIsLoading(false);
-                setActiveInstruction({
-                    icon: <Info className="w-5 h-5 text-red-500" />,
-                    text: "File Not Found",
-                    subtext: "System could not locate model"
-                });
-            });
-
-        // Failsafe timeout
-        timeoutId = setTimeout(() => {
-            if (isMounted && isLoading) {
-                console.warn("⚠️ Model load timed out");
-                setIsLoading(false);
-                setActiveInstruction({
-                    icon: <Info className="w-5 h-5 text-orange-500" />,
-                    text: "Load Warning",
-                    subtext: "Model taking longer than expected"
-                });
-            }
-        }, 15000);
+        initializeViewer();
 
         return () => {
             isMounted = false;

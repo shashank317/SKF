@@ -25,7 +25,8 @@ function ConfiguratorPage() {
         HEX_BOLT: "/structural_hex_bolt.glb",
         ALLEN_BOLT: "/M10_Allen_bolt.glb",
         M8_BOLT: "/M8x16.glb",
-        HYDRAULIC: "/hydralic.glb"
+        HYDRAULIC: "/hydralic.glb",
+        LUBRICATION_SYSTEM: "/Lubrication_System.glb"
     };
 
     const activeModelUrl = MODEL_PATHS[activeSchemaId];
@@ -95,6 +96,19 @@ function ConfiguratorPage() {
         // For hydraulic components: No dynamic scaling, just unit conversion
         if (activeSchemaId === 'HYDRAULIC') {
             return [1000, 1000, 1000];
+        }
+
+        // For lubrication system: Scale based on BED_WIDTH and BED_HEIGHT
+        if (activeSchemaId === 'LUBRICATION_SYSTEM') {
+            const bedWidth = parseFloat(formState.BED_WIDTH) || 1;
+            const bedHeight = parseFloat(formState.BED_HEIGHT) || 1;
+
+            // Clamp to reasonable bounds (0.5x to 5x)
+            const clampedWidth = Math.max(0.5, Math.min(5, bedWidth));
+            const clampedHeight = Math.max(0.5, Math.min(5, bedHeight));
+
+            console.log("🛢️ Lubrication System Scale:", [clampedWidth, clampedHeight, 1]);
+            return [clampedWidth, clampedHeight, 1];
         }
 
         return [1, 1, 1];
@@ -215,6 +229,7 @@ function ConfiguratorPage() {
                             <option value="ALLEN_BOLT">M10 Allen Bolt</option>
                             <option value="M8_BOLT">M8x16 Bolt</option>
                             <option value="HYDRAULIC">Hydraulic Component</option>
+                            <option value="LUBRICATION_SYSTEM">Lubrication System</option>
                         </select>
                     </div>
                 </div>
