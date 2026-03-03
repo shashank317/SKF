@@ -11,16 +11,15 @@ const cards = [
             <img
                 src={configImg}
                 alt="Configurator Preview"
-                style={{ width: '200%', borderRadius: '20px', marginTop: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                className="preview-card-img"
             />
         )
     },
-
 ];
 
 function Capabilities({ className = "" }) {
     return (
-        <section className={`capabilities ${className}`}>
+        <section id="capabilities" className={`capabilities ${className}`}>
             <div className="capabilities-text">
                 <h1>Capabilities</h1>
                 <ScrollFloat
@@ -31,18 +30,18 @@ function Capabilities({ className = "" }) {
                     stagger={0.03}
                     containerClassName="mb-10"
                 >
-                    Eliminate catalog   browsing.
+                    Eliminate catalog browsing.
                 </ScrollFloat>
 
                 <p>
                     Traditional component selection requires searching through
-                    hundreds of PDF pages. This system reverses the process:
+                    hundreds of PDF pages. This system reverses the process —
                     you define the geometry, and the system resolves the part.
                 </p>
 
                 <ul>
                     <li>Tolerance-based filtering</li>
-                    <li>Material & finish constraints</li>
+                    <li>Material &amp; finish constraints</li>
                     <li>Legacy part cross-referencing</li>
                 </ul>
             </div>

@@ -1,0 +1,202 @@
+.selection-page {
+    padding: 6rem 2rem 4rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    min-height: calc(100vh - 160px);
+    font-family: var(--font-primary, inherit);
+}
+
+.selection-header {
+    text-align: center;
+    margin-bottom: 5rem;
+}
+
+.selection-title {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 800;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.selection-subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Card Base Styling */
+.product-card {
+    position: relative;
+    background: var(--surface-1, #ffffff);
+    border: 1px solid var(--surface-2, #e5e7eb);
+    border-radius: 12px;
+    padding: 2.5rem 2rem;
+    cursor: pointer;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme='dark'] .product-card {
+    background: var(--surface-1, #111111);
+    border-color: var(--surface-2, #222222);
+    box-shadow: none;
+}
+
+/* Card Hover Mechanics */
+.product-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--text-primary);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Slick Header inside Card */
+.product-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+}
+
+.product-card-visual {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card-visual svg {
+    width: 100%;
+    height: 100%;
+    stroke-width: 1.5px;
+}
+
+.product-card:hover .product-card-visual {
+    transform: scale(1.1);
+    color: var(--accent-1, #3b82f6);
+}
+
+/* Techy Monospace Badge */
+.product-badge {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.6rem;
+    background: var(--surface-2, #f3f4f6);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+[data-theme='dark'] .product-badge {
+    background: var(--surface-2, #222222);
+}
+
+/* Typography */
+.product-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.01em;
+}
+
+.product-description {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 2.5rem 0;
+    flex: 1;
+}
+
+/* Brutalist Button */
+.configure-btn {
+    align-self: flex-start;
+    padding: 0;
+    background: transparent;
+    color: var(--text-primary);
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: relative;
+}
+
+.configure-btn::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--text-primary);
+    transition: width 0.3s ease;
+}
+
+.product-card:hover .configure-btn::after {
+    width: 100%;
+}
+
+.configure-btn .arrow-icon {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover .configure-btn .arrow-icon {
+    transform: translateX(6px);
+}
+
+/* Subtle background accent line */
+.card-accent-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--accent-1, #3b82f6);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover .card-accent-line {
+    transform: scaleX(1);
+}
+
+@media (max-width: 768px) {
+    .selection-grid {
+        grid-template-columns: 1fr;
+    }
+    .selection-header {
+        margin-bottom: 3rem;
+    }
+}

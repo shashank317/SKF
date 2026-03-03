@@ -10,8 +10,13 @@ function Layout({ children }) {
                     </div>
                 </div>
 
+                <nav className="nav-center">
+                    <a href="#capabilities" className="nav-link">Capabilities</a>
+                    <a href="#workflow" className="nav-link">Workflow</a>
+                </nav>
+
                 <div className="nav-right">
-                    {/* Theme toggle removed - using light mode only */}
+                    <a href="/select" className="nav-cta-btn">Get Started</a>
                 </div>
             </header>
 

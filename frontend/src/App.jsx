@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "./features/landing/pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import ConfiguratorPage from "./features/configurator/pages/ConfiguratorPage";
+import SelectionPage from "./features/selection/pages/SelectionPage";
 import ConnectionTest from "./components/ConnectionTest";
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
       <ConnectionTest />
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/select" element={<SelectionPage />} />
         <Route path="/configurator" element={<ConfiguratorPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

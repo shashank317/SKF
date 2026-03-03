@@ -30,7 +30,7 @@ const steps = [
 
 function Workflow() {
     return (
-        <section className="workflow">
+        <section id="workflow" className="workflow">
             <div className="workflow-header">
                 <ScrollFloat
                     animationDuration={1}
@@ -49,16 +49,16 @@ function Workflow() {
                 {steps.map((step, index) => (
                     <div className="step" key={step.id}>
                         <AnimatedContent
-                            distance={150}
-                            direction="horizontal"
+                            distance={80}
+                            direction="vertical"
                             reverse={false}
-                            duration={1.2}
-                            ease="bounce.out"
-                            initialOpacity={0.2}
+                            duration={0.9}
+                            ease="power3.out"
+                            initialOpacity={0}
                             animateOpacity
-                            scale={1.1}
-                            threshold={0.1}
-                            delay={index * 0.2}
+                            scale={1}
+                            threshold={0.15}
+                            delay={index * 0.15}
                         >
                             <span className="step-number">{step.id}</span>
                         </AnimatedContent>

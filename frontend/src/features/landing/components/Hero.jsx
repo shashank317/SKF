@@ -16,7 +16,7 @@ function Hero() {
         setIsLoading(true);
         // Small delay to show the animation before navigation
         setTimeout(() => {
-            navigate('/configurator');
+            navigate('/select');
         }, 1500);
     };
 

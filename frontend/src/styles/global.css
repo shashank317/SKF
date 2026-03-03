@@ -1,8 +1,6 @@
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #0f0f0f;
-  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 section {

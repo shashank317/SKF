@@ -13,7 +13,7 @@ function Footer() {
                     Internal engineering platform — v0.2
                 </div>
                 <div className="footer-warning">
-                    Unauthorized access is prohibited.
+                    &copy; {new Date().getFullYear()} CADMAXX. All rights reserved.
                 </div>
             </div>
         </footer>

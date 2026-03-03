@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Layers, FileText, Link, PenTool, Info } from "lucide-react";
 import Preview3D from "../components/Preview3D";
 import InputPanel from "../components/InputPanel";
 import logo from "../../../assets/CLOGO.png";
@@ -7,8 +9,12 @@ import { createConfiguration } from "../../../services/api";
 import { SCHEMAS, getSchemabyId } from "../../../constants/schemas";
 
 function ConfiguratorPage() {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const initialType = searchParams.get("type") || 'LINEAR_GUIDE';
+
     const [formState, setFormState] = useState({});
-    const [activeSchemaId, setActiveSchemaId] = useState('LINEAR_GUIDE');
+    const [activeSchemaId, setActiveSchemaId] = useState(initialType);
     const [leftWidth, setLeftWidth] = useState(30); // Percentage - 30% input, 70% preview
     const [isResizing, setIsResizing] = useState(false);
     const [activeTab, setActiveTab] = useState(null); // null = no tab panel open
@@ -211,6 +217,13 @@ function ConfiguratorPage() {
             {/* Top Bar */}
             <header className="configurator-header">
                 <div className="header-left">
+                    <button
+                        className="back-to-select-btn"
+                        onClick={() => navigate('/select')}
+                        title="Back to Selection"
+                    >
+                        ←
+                    </button>
                     <img src={logo} alt="CADMAXX Logo" className="logo-img" style={{ height: '32px' }} />
                     <span style={{ marginLeft: '1px', color: 'var(--text-secondary)' }}> / Configurator</span>
                 </div>
@@ -281,37 +294,44 @@ function ConfiguratorPage() {
             </div>
 
             {/* Bottom Tabs Navigation */}
-            <div className="bottom-tabs-navigation">
-                <button
-                    className={`bottom-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-                    onClick={() => setActiveTab(activeTab === 'overview' ? null : 'overview')}
-                >
-                    OVERVIEW
-                </button>
-                <button
-                    className={`bottom-tab-btn ${activeTab === 'technical' ? 'active' : ''}`}
-                    onClick={() => setActiveTab(activeTab === 'technical' ? null : 'technical')}
-                >
-                    TECHNICAL SPECIFICATION
-                </button>
-                <button
-                    className={`bottom-tab-btn ${activeTab === 'compatible' ? 'active' : ''}`}
-                    onClick={() => setActiveTab(activeTab === 'compatible' ? null : 'compatible')}
-                >
-                    COMPATIBLE PRODUCTS
-                </button>
-                <button
-                    className={`bottom-tab-btn ${activeTab === 'mounting' ? 'active' : ''}`}
-                    onClick={() => setActiveTab(activeTab === 'mounting' ? null : 'mounting')}
-                >
-                    MOUNTING
-                </button>
-                <button
-                    className={`bottom-tab-btn ${activeTab === 'info' ? 'active' : ''}`}
-                    onClick={() => setActiveTab(activeTab === 'info' ? null : 'info')}
-                >
-                    MORE INFORMATION
-                </button>
+            <div className="bottom-tabs-container">
+                <div className="bottom-tabs-navigation">
+                    <button
+                        className={`bottom-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+                        onClick={() => setActiveTab(activeTab === 'overview' ? null : 'overview')}
+                    >
+                        <Layers className="tab-icon" size={16} />
+                        <span>OVERVIEW</span>
+                    </button>
+                    <button
+                        className={`bottom-tab-btn ${activeTab === 'technical' ? 'active' : ''}`}
+                        onClick={() => setActiveTab(activeTab === 'technical' ? null : 'technical')}
+                    >
+                        <FileText className="tab-icon" size={16} />
+                        <span>TECHNICAL SPECIFICATION</span>
+                    </button>
+                    <button
+                        className={`bottom-tab-btn ${activeTab === 'compatible' ? 'active' : ''}`}
+                        onClick={() => setActiveTab(activeTab === 'compatible' ? null : 'compatible')}
+                    >
+                        <Link className="tab-icon" size={16} />
+                        <span>COMPATIBLE PRODUCTS</span>
+                    </button>
+                    <button
+                        className={`bottom-tab-btn ${activeTab === 'mounting' ? 'active' : ''}`}
+                        onClick={() => setActiveTab(activeTab === 'mounting' ? null : 'mounting')}
+                    >
+                        <PenTool className="tab-icon" size={16} />
+                        <span>MOUNTING</span>
+                    </button>
+                    <button
+                        className={`bottom-tab-btn ${activeTab === 'info' ? 'active' : ''}`}
+                        onClick={() => setActiveTab(activeTab === 'info' ? null : 'info')}
+                    >
+                        <Info className="tab-icon" size={16} />
+                        <span>MORE INFORMATION</span>
+                    </button>
+                </div>
             </div>
 
             {/* Tab Content Sections */}
