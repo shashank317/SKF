@@ -10,6 +10,8 @@ import { PARAMETERS as ALLEN_PARAMS, STEPS as ALLEN_STEPS } from './parameters_a
 import { PARAMETERS as M8_PARAMS, STEPS as M8_STEPS } from './parameters_m8';
 import { PARAMETERS as HYDRAULIC_PARAMS, STEPS as HYDRAULIC_STEPS } from './parameters_hydraulic';
 import { PARAMETERS as LUBRICATION_PARAMS, STEPS as LUBRICATION_STEPS } from './parameters_lubrication';
+import { PARAMETERS as TBOLT_PARAMS, STEPS as TBOLT_STEPS } from './parameters_tbolt';
+import { PARAMETERS as RS_PARAMS, STEPS as RS_STEPS } from './parameters_rs';
 
 export const SCHEMAS = {
     LINEAR_GUIDE: {
@@ -47,6 +49,18 @@ export const SCHEMAS = {
         name: 'Lubrication System',
         steps: LUBRICATION_STEPS,
         parameters: LUBRICATION_PARAMS
+    },
+    T_BOLT: {
+        id: 't_bolt',
+        name: 'T-Bolt',
+        steps: TBOLT_STEPS,
+        parameters: TBOLT_PARAMS
+    },
+    RS: {
+        id: 'rs',
+        name: 'Roller Support',
+        steps: RS_STEPS,
+        parameters: RS_PARAMS
     }
 };
 

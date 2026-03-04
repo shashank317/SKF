@@ -24,7 +24,7 @@ import {
 import "./Preview3D.css";
 import { createExport } from "../../../services/api";
 
-const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) => {
+const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1], onModelInfo }) => {
     const canvasRef = useRef(null);
     const viewerRef = useRef(null);
     const [sectionEnabled, setSectionEnabled] = useState(false);
@@ -89,8 +89,12 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
         let modelRef = null;
 
         const cleanup = () => {
-            if (modelRef) modelRef.destroy();
-            if (viewerRef.current) viewerRef.current.destroy();
+            try {
+                if (modelRef) { modelRef.destroy(); modelRef = null; }
+                if (viewerRef.current) { viewerRef.current.destroy(); viewerRef.current = null; }
+            } catch (e) {
+                console.warn("Cleanup warning:", e.message);
+            }
         };
         cleanup();
 
@@ -187,10 +191,14 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                 const gltfLoader = new GLTFLoaderPlugin(viewer);
                 const currentScale = JSON.parse(modelScaleStr);
 
-                console.log(`📥 Loading model: ${modelUrl}`);
+                // Derive baseUri for .gltf files so xeokit can resolve relative .bin paths
+                const baseUri = modelUrl.substring(0, modelUrl.lastIndexOf("/") + 1) || "/";
+
+                console.log(`📥 Loading model: ${modelUrl} (baseUri: ${baseUri})`);
                 const model = gltfLoader.load({
                     id: "bearing",
                     src: modelUrl,
+                    baseUri: baseUri,
                     edges: true,
                     scale: currentScale,
                     saoEnabled: false,
@@ -217,6 +225,12 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                     const centerY = (aabb[1] + aabb[4]) / 2;
                     const centerZ = (aabb[2] + aabb[5]) / 2;
 
+                    // Report model dimensions back to parent
+                    if (onModelInfo) {
+                        console.log(`📐 Model AABB: X=${sizeX.toFixed(2)}, Y=${sizeY.toFixed(2)}, Z=${sizeZ.toFixed(2)}`);
+                        onModelInfo({ sizeX, sizeY, sizeZ, aabb });
+                    }
+
                     viewer.camera.eye = [centerX + distance, centerY + distance, centerZ + distance];
                     viewer.camera.look = [centerX, centerY, centerZ];
 
@@ -233,6 +247,12 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1] }) =>
                         console.log("✂️ Section plane created at:", [centerX, centerY, centerZ]);
                     }
 
+                    setIsLoading(false);
+                });
+
+                model.on("error", (err) => {
+                    if (!isMounted) return;
+                    console.error("❌ Model loading error:", err);
                     setIsLoading(false);
                 });
 

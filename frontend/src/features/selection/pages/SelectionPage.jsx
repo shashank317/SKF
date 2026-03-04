@@ -10,7 +10,9 @@ const SCHEMAS = {
     HEX_BOLT: { id: 'HEX_BOLT', name: 'Hex Bolt' },
     ALLEN_BOLT: { id: 'ALLEN_BOLT', name: 'Allen Bolt' },
     HYDRAULIC: { id: 'HYDRAULIC', name: 'Hydraulic Cylinder' },
-    LUBRICATION_SYSTEM: { id: 'LUBRICATION_SYSTEM', name: 'Lubrication System' }
+    LUBRICATION_SYSTEM: { id: 'LUBRICATION_SYSTEM', name: 'Lubrication System' },
+    T_BOLT: { id: 'T_BOLT', name: 'T-Bolt' },
+    RS: { id: 'RS', name: 'Roller Support' }
 };
 
 const Layout = ({ children }) => (
@@ -305,6 +307,23 @@ const SVGIcons = {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" />
             <path d="M12 18v.01" />
+        </svg>
+    ),
+    T_BOLT: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="2" width="16" height="5" rx="1" />
+            <rect x="9" y="7" width="6" height="15" rx="1" />
+            <path d="M10 11h4" />
+            <path d="M10 15h4" />
+        </svg>
+    ),
+    RS: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="10" r="6" />
+            <path d="M4 20h16" />
+            <path d="M6 20l2-4" />
+            <path d="M18 20l-2-4" />
+            <path d="M12 16v4" />
         </svg>
     ),
     DEFAULT: (

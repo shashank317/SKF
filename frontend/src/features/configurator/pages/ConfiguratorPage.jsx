@@ -21,6 +21,7 @@ function ConfiguratorPage() {
     const [isModelVisible, setIsModelVisible] = useState(false);
     const containerRef = useRef(null);
     const [configId, setConfigId] = useState(null);
+    const modelRefDimensionsRef = useRef(null); // AABB from first model load (ref to avoid re-render loop)
 
     // Get current schema object
     const currentSchema = SCHEMAS[activeSchemaId];
@@ -32,7 +33,9 @@ function ConfiguratorPage() {
         ALLEN_BOLT: "/M10_Allen_bolt.glb",
         M8_BOLT: "/M8x16.glb",
         HYDRAULIC: "/hydralic.glb",
-        LUBRICATION_SYSTEM: "/Lubrication_System.glb"
+        LUBRICATION_SYSTEM: "/Lubrication_System.glb",
+        T_BOLT: "/TBolt1-Body.glb",
+        RS: "/Roller_supporter.glb"
     };
 
     const activeModelUrl = MODEL_PATHS[activeSchemaId];
@@ -52,34 +55,91 @@ function ConfiguratorPage() {
         HEX_BOLT: 1,
         ALLEN_BOLT: 1,
         M8_BOLT: 1,
-        HYDRAULIC: 1  // No scaling for hydraulic
+        HYDRAULIC: 1,  // No scaling for hydraulic
+        T_BOLT: 1,
+        RS: 1
     };
 
     const calculateModelScale = () => {
         const baseLength = BASE_LENGTHS[activeSchemaId] || 1000;
 
-        // For bolts: Scale based on Diameter (D) and Length (L)
-        // Base Model: M8x16 (D=8mm, L=16mm)
-        // Unit Conversion: Model is likely in meters, so we multiply by 1000 to get to mm, then apply ratio.
-        if (['HEX_BOLT', 'ALLEN_BOLT', 'M8_BOLT'].includes(activeSchemaId)) {
-            const inputL = parseFloat(formState.L);
-            const inputD = parseFloat(formState.D);
+        // T-Bolt and Roller Support: scale based on user dimensions
+        // Uses the AABB from the first model load as reference
+        if (['T_BOLT', 'RS'].includes(activeSchemaId)) {
+            if (!modelRefDimensionsRef.current) {
+                // First load: use uniform 1000x (meters → mm), AABB will be captured
+                return [1000, 1000, 1000];
+            }
 
-            // Defaults if inputs are missing/invalid
+            // Get user inputs
+            const rawL = formState.VAR04; // Total Length / Bearing Width
+            const rawD = formState.VAR02; // Thread Size / Roller Diameter
+
+            let inputL = parseFloat(rawL);
+            let inputD = parseFloat(rawD);
+
+            // Handle "M10" style strings
+            if (isNaN(inputD) && typeof rawD === 'string') {
+                inputD = parseFloat(rawD.replace(/[^\d.]/g, ''));
+            }
+
+            // If no valid inputs yet, show at natural size
+            if ((isNaN(inputL) || inputL <= 0) && (isNaN(inputD) || inputD <= 0)) {
+                return [1000, 1000, 1000];
+            }
+
+            // Reference dimensions from AABB (in mm, since first load was at 1000x)
+            const refX = modelRefDimensionsRef.current.sizeX;
+            const refY = modelRefDimensionsRef.current.sizeY;
+            const refZ = modelRefDimensionsRef.current.sizeZ;
+
+            // Determine which axis is length (longest) and which is diameter
+            const refLength = Math.max(refX, refY, refZ);
+            const refDiameter = Math.min(refX, refY, refZ);
+
+            // Calculate scale ratios
+            const ratioL = (!isNaN(inputL) && inputL > 0) ? inputL / refLength : 1;
+            const ratioD = (!isNaN(inputD) && inputD > 0) ? inputD / refDiameter : 1;
+
+            // Apply ratio to the correct axes
+            // Longest axis gets length ratio, shortest axes get diameter ratio
+            let scale;
+            if (refX === refLength) {
+                scale = [1000 * ratioL, 1000 * ratioD, 1000 * ratioD];
+            } else if (refY === refLength) {
+                scale = [1000 * ratioD, 1000 * ratioL, 1000 * ratioD];
+            } else {
+                scale = [1000 * ratioD, 1000 * ratioD, 1000 * ratioL];
+            }
+
+            console.log(`🔩 ${activeSchemaId} Dynamic Scale:`, { refLength, refDiameter, inputL, inputD, ratioL, ratioD, scale });
+            return scale;
+        }
+
+        // For standard bolts: Scale based on Diameter (D) and Length (L)
+        // Base Model: M8x16 (D=8mm, L=16mm)
+        if (['HEX_BOLT', 'ALLEN_BOLT', 'M8_BOLT'].includes(activeSchemaId)) {
+            const rawL = formState.L || formState.VAR04;
+            const rawD = formState.D || formState.VAR02 || formState.FIX10;
+
+            let inputL = parseFloat(rawL);
+            let inputD = parseFloat(rawD);
+
+            if (isNaN(inputD) && typeof rawD === 'string') {
+                inputD = parseFloat(rawD.replace(/[^\d.]/g, ''));
+            }
+
             const targetL = (!isNaN(inputL) && inputL > 0) ? inputL : 16;
             const targetD = (!isNaN(inputD) && inputD > 0) ? inputD : 8;
 
             const BASE_L = 16;
             const BASE_D = 8;
 
-            // Calculate Ratios
             const ratioL = targetL / BASE_L;
             const ratioD = targetD / BASE_D;
 
-            // Apply to axes (Assuming Y is Length for bolts, X/Z are Diameter)
-            // We keep the 1000 factor for the meter->mm conversion base
             const scale = [1000 * ratioD, 1000 * ratioL, 1000 * ratioD];
-            console.log("🔩 Bolt Scale Calculation:", { inputL, inputD, targetL, targetD, ratioL, ratioD, scale });
+            console.log(`🔩 ${activeSchemaId} Scale:`, { targetL, targetD, ratioL, ratioD, scale });
             return scale;
         }
 
@@ -127,6 +187,7 @@ function ConfiguratorPage() {
         setActiveSchemaId(newSchemaId);
         setFormState({}); // Clear form on schema change
         setIsModelVisible(false); // Hide 3D model
+        modelRefDimensionsRef.current = null; // Reset reference dimensions for new model
     };
 
     const handleApply = async () => {
@@ -243,6 +304,8 @@ function ConfiguratorPage() {
                             <option value="M8_BOLT">M8x16 Bolt</option>
                             <option value="HYDRAULIC">Hydraulic Component</option>
                             <option value="LUBRICATION_SYSTEM">Lubrication System</option>
+                            <option value="T_BOLT">T-Bolt</option>
+                            <option value="RS">Roller Support</option>
                         </select>
                     </div>
                 </div>
@@ -289,6 +352,12 @@ function ConfiguratorPage() {
                         configId={configId}
                         modelUrl={activeModelUrl}
                         modelScale={modelScale}
+                        onModelInfo={(info) => {
+                            if (!modelRefDimensionsRef.current) {
+                                console.log('📐 Captured reference dimensions:', info);
+                                modelRefDimensionsRef.current = info;
+                            }
+                        }}
                     />
                 </section>
             </div>
