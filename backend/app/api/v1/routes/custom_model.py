@@ -7,12 +7,13 @@ via custom_inputs.py to generate a 3D model, returning the .glb binary directly.
 """
 import os
 import sys
-import uuid
+import io
+import zipfile
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException, status, Query
+from fastapi.responses import FileResponse, StreamingResponse
 
-from app.schemas.custom_model import CustomModelRequest
+from app.schemas.custom_model import CustomModelRequest, TBoltModelRequest
 
 router = APIRouter()
 
@@ -27,6 +28,84 @@ EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 # Add scripts dir to sys.path so we can import custom_inputs
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
+
+
+def _next_output_num() -> int:
+    """Return the next sequential number (1, 2, 3, ...) by scanning existing files."""
+    existing = sorted(
+        int(f.stem) for f in EXPORTS_DIR.iterdir()
+        if f.is_file() and f.stem.isdigit()
+    )
+    return (existing[-1] + 1) if existing else 1
+
+
+def _get_latest_output_num() -> int:
+    """Return the latest sequential number (highest existing number)."""
+    existing = sorted(
+        int(f.stem) for f in EXPORTS_DIR.iterdir()
+        if f.is_file() and f.stem.isdigit()
+    )
+    return existing[-1] if existing else 0
+
+
+@router.get(
+    "/download-latest-cad",
+    summary="Download Latest Generated CAD Files",
+    description="Download all files (GLB, STL, OBJ, FCStd) for the latest generated model as a ZIP archive."
+)
+def download_latest_cad(file_num: int = Query(None, description="Optional specific file number to download")):
+    """
+    Download all available formats of the latest (or specified) generated model as a ZIP.
+    """
+    try:
+        # Determine which file number to download
+        if file_num is None:
+            file_num = _get_latest_output_num()
+        
+        if file_num <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No generated models found. Please generate a model first."
+            )
+        
+        # Find all files with this number
+        extensions = ['.glb', '.stl', '.obj', '.FCStd', '.gltf']
+        files_to_zip = []
+        
+        for ext in extensions:
+            file_path = EXPORTS_DIR / f"{file_num}{ext}"
+            if file_path.exists() and file_path.stat().st_size > 0:
+                files_to_zip.append(file_path)
+        
+        if not files_to_zip:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No files found for model #{file_num}"
+            )
+        
+        # Create ZIP in memory
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for file_path in files_to_zip:
+                zip_file.write(file_path, file_path.name)
+        
+        zip_buffer.seek(0)
+        
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f"attachment; filename=model_{file_num}_cad_files.zip"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create download: {str(e)}"
+        )
 
 
 @router.post(
@@ -44,9 +123,9 @@ def generate_cad(request: CustomModelRequest):
         # Import the generation functions from custom_inputs.py
         import custom_inputs
 
-        # Unique filename to avoid collisions
-        file_id = uuid.uuid4().hex[:8]
-        output_filename = f"custom_model_{file_id}.glb"
+        # Sequential filename: 1.glb, 2.glb, ...
+        file_num = _next_output_num()
+        output_filename = f"{file_num}.glb"
         output_path = str(EXPORTS_DIR / output_filename)
 
         # Generate the FreeCAD script with the user's dimensions
@@ -61,27 +140,27 @@ def generate_cad(request: CustomModelRequest):
         )
 
         # Run FreeCAD headless to produce the model
-        success = custom_inputs.run_freecad_script(script_content, use_gui=False)
+        success, error_output = custom_inputs.run_freecad_script(script_content, use_gui=False)
 
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="FreeCAD failed to generate the model. Is FreeCAD installed?"
+                detail=f"FreeCAD failed to generate the model.\\nReason: {error_output}"
             )
 
-        # Check which output files exist - prefer GLB, fall back to STL/OBJ
+        # Check which output files exist - prefer STL/OBJ (GLB direct export not supported in headless FreeCAD)
         glb_path = EXPORTS_DIR / output_filename
         stl_path = EXPORTS_DIR / output_filename.replace('.glb', '.stl')
         obj_path = EXPORTS_DIR / output_filename.replace('.glb', '.obj')
 
-        if glb_path.exists():
+        # GLB direct export often produces a 0-byte file; only serve if non-empty
+        if glb_path.exists() and glb_path.stat().st_size > 0:
             return FileResponse(
                 path=str(glb_path),
                 media_type="model/gltf-binary",
                 filename=output_filename
             )
         elif stl_path.exists():
-            # If GLB wasn't generated, return STL
             return FileResponse(
                 path=str(stl_path),
                 media_type="model/stl",
@@ -96,7 +175,7 @@ def generate_cad(request: CustomModelRequest):
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="FreeCAD ran but no output file was produced."
+                detail=f"FreeCAD ran but no output file was produced.\nFreeCAD output: {error_output}"
             )
 
     except ImportError as e:
@@ -111,3 +190,71 @@ def generate_cad(request: CustomModelRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Model generation failed: {str(e)}"
         )
+
+@router.post(
+    "/generate-tbolt",
+    summary="Generate Custom T-Bolt Model",
+    description="Generate a T-Bolt 3D model with custom dimensions using FreeCAD. Returns the .glb file directly.",
+    response_class=FileResponse
+)
+def generate_tbolt(request: TBoltModelRequest):
+    """
+    Generate a custom T-Bolt component via FreeCAD.
+    Returns the .glb binary file directly.
+    """
+    try:
+        import t_bolt_inputs
+
+        # Sequential filename: 1.glb, 2.glb, ...
+        file_num = _next_output_num()
+        output_filename = f"{file_num}.glb"
+        output_path = str(EXPORTS_DIR / output_filename)
+
+        script_content = t_bolt_inputs.generate_script(
+            output_path=output_path,
+            output_format="glb",
+            m=request.m,
+            l=request.l,
+            head_width=request.head_width,
+            head_height=request.head_height,
+            slot_width=request.slot_width,
+            thread_len=request.thread_length
+        )
+
+        success = t_bolt_inputs.run_freecad_script(script_content, use_gui=False)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="FreeCAD failed to generate the T-Bolt model. Is FreeCAD installed?"
+            )
+
+        glb_path = EXPORTS_DIR / output_filename
+        stl_path = EXPORTS_DIR / output_filename.replace('.glb', '.stl')
+        obj_path = EXPORTS_DIR / output_filename.replace('.glb', '.obj')
+
+        if glb_path.exists() and glb_path.stat().st_size > 0:
+            return FileResponse(path=str(glb_path), media_type="model/gltf-binary", filename=output_filename)
+        elif stl_path.exists():
+            return FileResponse(path=str(stl_path), media_type="model/stl", filename=output_filename.replace('.glb', '.stl'))
+        elif obj_path.exists():
+            return FileResponse(path=str(obj_path), media_type="model/obj", filename=output_filename.replace('.glb', '.obj'))
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="FreeCAD ran but no T-Bolt output file was produced."
+            )
+
+    except ImportError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to import t_bolt_inputs script: {str(e)}"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Model generation failed: {str(e)}"
+        )
+

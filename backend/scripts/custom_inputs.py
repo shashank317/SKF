@@ -11,6 +11,7 @@ Usage:
 import subprocess
 import os
 import sys
+import tempfile
 
 WORKSPACE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -148,41 +149,50 @@ def export_model(doc):
     """Export the model to GLB/GLTF format"""
     print("Exporting to " + OUTPUT_FORMAT.upper() + "...")
     
-    shapes = []
-    for obj in doc.Objects:
-        if hasattr(obj, 'Shape') and obj.Shape.Solids:
-            shapes.append(obj.Shape)
-    
-    if not shapes:
-        print("No shapes found to export!")
-        return False
-    
-    if len(shapes) > 1:
-        compound = Part.makeCompound(shapes)
-    else:
-        compound = shapes[0]
-    
-    mesh = MeshPart.meshFromShape(
-        Shape=compound, LinearDeflection=0.1, AngularDeflection=0.5, Relative=False
-    )
-    
-    stl_path = OUTPUT_PATH.replace('.glb', '.stl').replace('.gltf', '.stl')
-    mesh.write(stl_path)
-    print("STL saved: " + stl_path)
-    
-    obj_path = OUTPUT_PATH.replace('.glb', '.obj').replace('.gltf', '.obj')
-    mesh.write(obj_path)
-    print("OBJ saved: " + obj_path)
-
-    try:
-        mesh.write(OUTPUT_PATH)
-        print(OUTPUT_FORMAT.upper() + " saved: " + OUTPUT_PATH)
-    except Exception as e:
-        print("Direct " + OUTPUT_FORMAT.upper() + " export not available. Use STL or OBJ instead.")
-    
+    # Save FreeCAD document first
     fcstd_path = OUTPUT_PATH.replace('.glb', '.FCStd').replace('.gltf', '.FCStd')
     doc.saveAs(fcstd_path)
     print("FreeCAD file saved: " + fcstd_path)
+
+    body = doc.getObject('Body')
+    if not body:
+        print("Error: Body object not found for export.")
+        return False
+
+    try:
+        # User provided GUI-based export script
+        import FreeCADGui as Gui
+        import ImportGui
+        
+        print("FreeCAD GUI environment detected. Attempting native GLB export via ImportGui...")
+        
+        __objs__ = [body]
+        if hasattr(ImportGui, "exportOptions"):
+            options = ImportGui.exportOptions(OUTPUT_PATH)
+            ImportGui.export(__objs__, OUTPUT_PATH, options)
+        else:
+            ImportGui.export(__objs__, OUTPUT_PATH)
+            
+        print(OUTPUT_FORMAT.upper() + " successfully saved via ImportGui: " + OUTPUT_PATH)
+        
+    except ImportError:
+        print("Headless mode detected (FreeCADCmd). ImportGui not available.")
+        print("Falling back to STL/OBJ...")
+        
+        # Fallback to mesh export for headless
+        compound = body.Shape
+        mesh = MeshPart.meshFromShape(
+            Shape=compound, LinearDeflection=0.1, AngularDeflection=0.5, Relative=False
+        )
+        stl_path = OUTPUT_PATH.replace('.glb', '.stl').replace('.gltf', '.stl')
+        mesh.write(stl_path)
+        print("STL saved: " + stl_path)
+        
+        obj_path = OUTPUT_PATH.replace('.glb', '.obj').replace('.gltf', '.obj')
+        mesh.write(obj_path)
+        print("OBJ saved: " + obj_path)
+    except Exception as e:
+        print("Export failed: " + str(e))
     
     return True
 
@@ -237,15 +247,15 @@ def generate_script(output_path, output_format, d_shaft, w_bearing, w_base, h_ov
     # y1=25, y2=50(overall), y3=45, y4=32.5, y5=20(inner base)
     
     x1 = max(1.0, d_shaft / 2.0)
-    x2 = max(x1 + 5.0, x1 + 20.0)               
-    x3 = max(x2 + 5.0, w_base / 2.0)            
-    x4 = max(x3 + 5.0, d_roller / 2.0)
+    x2 = max(x1 + 1.0, x1 + 20.0)               
+    x3 = max(x2 + 1.0, w_base / 2.0)            
+    x4 = max(x3 + 1.0, d_roller / 2.0)
     
-    y5 = max(5.0, h_overall / 2.5)
-    y1 = max(y5 + 5.0, h_overall / 2.0)
-    y4 = max(y1 + 5.0, w_bearing)
-    y3 = max(y4 + 5.0, h_overall - 5.0)
-    y2 = max(y3 + 5.0, h_overall)
+    y5 = max(5.0, h_overall / 3.0) 
+    y1 = max(y5 + 1.0, h_overall / 2.0)
+    y4 = max(y1 + 1.0, w_bearing) 
+    y3 = max(y4 + 1.0, h_overall - 2.0)
+    y2 = max(y3 + 1.0, h_overall)
 
     return SCRIPT_TEMPLATE.format(
         output_path=output_path.replace("\\", "\\\\"),
@@ -256,39 +266,39 @@ def generate_script(output_path, output_format, d_shaft, w_bearing, w_base, h_ov
 
 
 def run_freecad_script(script_content, use_gui=False):
-    """
-    Executes the generated FreeCAD script using the system's Python executable,
-    matching the execution strategy of the user's 'free' reference project.
-    """
-    python_exe = sys.executable
-    script_path = os.path.join(WORKSPACE_DIR, "_temp_script.py")
+    if use_gui:
+        freecad_exe = find_freecad()
+    else:
+        freecad_exe = find_freecadcmd()
+        if freecad_exe is None:
+            freecad_exe = find_freecad()
     
+    if freecad_exe is None:
+        return False, "ERROR: FreeCAD executable not found!"
+    
+    # Write to system temp dir to avoid triggering uvicorn --reload file watcher
+    fd, script_path = tempfile.mkstemp(suffix='.py', prefix='freecad_script_')
+    os.close(fd)
     with open(script_path, 'w', encoding='utf-8') as f:
         f.write(script_content)
     
-    command = [python_exe, script_path]
-    print(f"Executing: {' '.join(command)}")
-    
     try:
         if use_gui:
-            subprocess.Popen(command)
-            return True
+            subprocess.Popen([freecad_exe, script_path])
+            return True, "Launched GUI"
         else:
-            result = subprocess.run(command, capture_output=True, text=True, timeout=300)
-            print("--- Subprocess stdout ---")
-            print(result.stdout)
-            if result.stderr:
-                print("--- Subprocess stderr ---")
-                print(result.stderr)
-            print(f"--- Subprocess return code: {result.returncode} ---")
+            result = subprocess.run([freecad_exe, script_path], capture_output=True, text=True, timeout=300)
             
-            return result.returncode == 0
+            output_log = f"Return Code: {result.returncode}\n--- STDOUT ---\n{result.stdout}\n--- STDERR ---\n{result.stderr}"
+            print(output_log)
+            
+            # FreeCADCmd often returns non-zero during cleanup in headless mode. 
+            # We assume success here and let the file-existence check act as the final validation.
+            return True, output_log
     except subprocess.TimeoutExpired:
-        print("Error: FreeCAD process timed out.")
-        return False
+        return False, "Error: FreeCAD process timed out."
     except Exception as e:
-        print("Error executing FreeCAD script: " + str(e))
-        return False
+        return False, f"Error executing FreeCAD script: {str(e)}"
 
 def main():
     import argparse

@@ -13,6 +13,7 @@ import {
 import {
     Viewer,
     GLTFLoaderPlugin,
+    STLLoaderPlugin,
     SectionPlanesPlugin,
     DistanceMeasurementsPlugin,
     DistanceMeasurementsMouseControl,
@@ -22,9 +23,9 @@ import {
     FastNavPlugin
 } from "@xeokit/xeokit-sdk";
 import "./Preview3D.css";
-import { createExport } from "../../../services/api";
+import { createExport, downloadLatestCadFiles } from "../../../services/api";
 
-const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1], onModelInfo }) => {
+const Preview3D = ({ showModel, configId, modelUrl, modelFormat = 'gltf', modelScale = [1, 1, 1], onModelInfo, schemaId }) => {
     const canvasRef = useRef(null);
     const viewerRef = useRef(null);
     const [sectionEnabled, setSectionEnabled] = useState(false);
@@ -46,6 +47,20 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1], onMo
 
     // Download handler
     const handleDownload = async () => {
+        // For T-Bolt and Roller Support, download all latest generated files as ZIP
+        if (schemaId === 'T_BOLT' || schemaId === 'RS') {
+            try {
+                console.log("Downloading latest CAD files for schema:", schemaId);
+                const result = await downloadLatestCadFiles();
+                console.log("Download completed:", result);
+            } catch (error) {
+                console.error("Download failed:", error);
+                alert("Failed to download CAD files: " + error.message);
+            }
+            return;
+        }
+        
+        // For other schemas, use the existing export flow
         if (!configId) {
             alert("Please apply the configuration first to generate the CAD file.");
             return;
@@ -111,6 +126,24 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1], onMo
 
                 viewerRef.current = viewer;
 
+                // Configure highlight material (yellow semi-transparent)
+                viewer.scene.highlightMaterial.fill = true;
+                viewer.scene.highlightMaterial.fillAlpha = 0.3;
+                viewer.scene.highlightMaterial.fillColor = [1.0, 0.9, 0.0]; // Yellow
+                viewer.scene.highlightMaterial.edges = true;
+                viewer.scene.highlightMaterial.edgeAlpha = 1.0;
+                viewer.scene.highlightMaterial.edgeColor = [1.0, 0.8, 0.0]; // Slightly darker yellow edges
+                viewer.scene.highlightMaterial.edgeWidth = 2;
+
+                // Configure selected material (stronger yellow)
+                viewer.scene.selectedMaterial.fill = true;
+                viewer.scene.selectedMaterial.fillAlpha = 0.5;
+                viewer.scene.selectedMaterial.fillColor = [1.0, 0.85, 0.0]; // Deep yellow
+                viewer.scene.selectedMaterial.edges = true;
+                viewer.scene.selectedMaterial.edgeAlpha = 1.0;
+                viewer.scene.selectedMaterial.edgeColor = [1.0, 0.6, 0.0]; // Orange edges
+                viewer.scene.selectedMaterial.edgeWidth = 3;
+
                 // Basic camera setup
                 viewer.camera.eye = [3, 3, 3];
                 viewer.camera.look = [0, 0, 0];
@@ -137,124 +170,160 @@ const Preview3D = ({ showModel, configId, modelUrl, modelScale = [1, 1, 1], onMo
                 new NavCubePlugin(viewer, { canvasId: "navCubeCanvas", visible: true });
                 new AxisGizmoPlugin(viewer, { canvasId: "axisGizmoCanvas" });
 
-                // DEBUG: let's see what xeokit is actually giving us
-                viewer.cameraControl.on("picked", (pickResult) => {
-                    if (!pickResult || !pickResult.entity) return;
+                // Track currently selected entity
+                let currentlySelectedId = null;
 
+                // Click handler - fires when an entity is picked
+                viewer.cameraControl.on("picked", (pickResult) => {
                     const entity = pickResult.entity;
 
-                    // FULL DIAGNOSTIC DUMP
+                    // Debug logging
                     console.log("=== PICK DEBUG ===");
                     console.log("entity.id:", entity.id);
-                    console.log("entity.isMesh:", entity.isMesh);
-                    console.log("entity.isModel:", entity.isModel);
-                    console.log("entity.isObject:", entity.isObject);
-                    console.log("entity.numChildren:", entity.numChildren);
-                    console.log("entity.geometry?.id:", entity.geometry?.id);
-                    console.log("pickResult.worldPos:", pickResult.worldPos);
-                    console.log("entity.parent?.id:", entity.parent?.id); // Added logging for parent ID
+                    console.log("currentlySelectedId:", currentlySelectedId);
 
-                    // List immediate children if any
-                    if (entity.children && entity.children.length > 0) {
-                        console.log("children IDs:", entity.children.map(c => c.id));
-                    }
-
-                    // Only highlight if it's actually a mesh
-                    if (entity.isObject) { // Changed to isObject as xeokit entities are often objects
-                        // Clear previous selection first (optional, user code had highlightedObjectIds logic which might be slightly different API, adjusting to standard xeokit)
-                        // viewer.scene.setObjectsHighlighted(viewer.scene.highlightedObjectIds, false);
-
-                        entity.highlighted = !entity.highlighted;
-
-                        if (entity.highlighted) {
-                            setSelectedEntity(entity.id);
-                            console.log(`✅ Highlighted mesh: ${entity.id}`);
-                        } else {
-                            setSelectedEntity(null);
-                            console.log(`❌ Un-highlighted: ${entity.id}`);
-                        }
+                    // Toggle selection
+                    if (currentlySelectedId === entity.id) {
+                        // Clicking same entity - deselect
+                        entity.highlighted = false;
+                        entity.selected = false;
+                        currentlySelectedId = null;
+                        setSelectedEntity(null);
+                        console.log(`❌ Deselected: ${entity.id}`);
                     } else {
-                        console.log("⚠️ Not a mesh - ignoring click");
+                        // New selection - clear previous and select new
+                        if (currentlySelectedId) {
+                            const prevEntity = viewer.scene.objects[currentlySelectedId];
+                            if (prevEntity) {
+                                prevEntity.highlighted = false;
+                                prevEntity.selected = false;
+                            }
+                        }
+                        
+                        entity.highlighted = true;
+                        entity.selected = true;
+                        currentlySelectedId = entity.id;
+                        setSelectedEntity(entity.id);
+                        console.log(`✅ Selected: ${entity.id}`);
                     }
                 });
 
-                // Hover effect (optional, keep simple for now)
-                viewer.cameraControl.on("hover", (pickResult) => {
-                    if (pickResult && pickResult.entity) {
-                        setHoveredEntity(pickResult.entity.id);
-                    } else {
-                        setHoveredEntity(null);
+                // Click on empty space - clear selection
+                viewer.cameraControl.on("pickedNothing", () => {
+                    if (currentlySelectedId) {
+                        const prevEntity = viewer.scene.objects[currentlySelectedId];
+                        if (prevEntity) {
+                            prevEntity.highlighted = false;
+                            prevEntity.selected = false;
+                        }
+                        currentlySelectedId = null;
+                        setSelectedEntity(null);
+                        console.log("🔲 Cleared selection (clicked empty space)");
                     }
                 });
 
                 // Load Model
-                const gltfLoader = new GLTFLoaderPlugin(viewer);
                 const currentScale = JSON.parse(modelScaleStr);
-
-                // Derive baseUri for .gltf files so xeokit can resolve relative .bin paths
                 const baseUri = modelUrl.substring(0, modelUrl.lastIndexOf("/") + 1) || "/";
+                console.log(`📥 Loading model: ${modelUrl} (Format: ${modelFormat}, baseUri: ${baseUri})`);
 
-                console.log(`📥 Loading model: ${modelUrl} (baseUri: ${baseUri})`);
-                const model = gltfLoader.load({
-                    id: "bearing",
-                    src: modelUrl,
-                    baseUri: baseUri,
-                    edges: true,
-                    scale: currentScale,
-                    saoEnabled: false,
-                    pbrEnabled: false,
-                    backfaces: true,
-                    performance: false, // Force separate objects
-                    combineGeometries: false, // Legacy: prevent merging
-                    quantizeGeometry: false // Prevent vertex quantization which can mess up measurements
-                });
+                let model;
+                const loadModel = (m) => {
+                    model = m;
+                    modelRef = m;
+                    m.on("loaded", () => {
+                        if (!isMounted) return;
+                        console.log("✅ Model loaded successfully!");
 
-                modelRef = model;
+                        const aabb = m.aabb;
+                        const sizeX = aabb[3] - aabb[0];
+                        const sizeY = aabb[4] - aabb[1];
+                        const sizeZ = aabb[5] - aabb[2];
+                        const maxSize = Math.max(sizeX, sizeY, sizeZ);
+                        const distance = maxSize * 1.5;
+                        const centerX = (aabb[0] + aabb[3]) / 2;
+                        const centerY = (aabb[1] + aabb[4]) / 2;
+                        const centerZ = (aabb[2] + aabb[5]) / 2;
 
-                model.on("loaded", () => {
-                    if (!isMounted) return;
-                    console.log("✅ Model loaded successfully!");
+                        // Report model dimensions back to parent
+                        if (onModelInfo) {
+                            console.log(`📐 Model AABB: X=${sizeX.toFixed(2)}, Y=${sizeY.toFixed(2)}, Z=${sizeZ.toFixed(2)}`);
+                            onModelInfo({ sizeX, sizeY, sizeZ, aabb });
+                        }
 
-                    const aabb = model.aabb;
-                    const sizeX = aabb[3] - aabb[0];
-                    const sizeY = aabb[4] - aabb[1];
-                    const sizeZ = aabb[5] - aabb[2];
-                    const maxSize = Math.max(sizeX, sizeY, sizeZ);
-                    const distance = maxSize * 1.5;
-                    const centerX = (aabb[0] + aabb[3]) / 2;
-                    const centerY = (aabb[1] + aabb[4]) / 2;
-                    const centerZ = (aabb[2] + aabb[5]) / 2;
+                        viewer.camera.eye = [centerX + distance, centerY + distance, centerZ + distance];
+                        viewer.camera.look = [centerX, centerY, centerZ];
 
-                    // Report model dimensions back to parent
-                    if (onModelInfo) {
-                        console.log(`📐 Model AABB: X=${sizeX.toFixed(2)}, Y=${sizeY.toFixed(2)}, Z=${sizeZ.toFixed(2)}`);
-                        onModelInfo({ sizeX, sizeY, sizeZ, aabb });
+                        viewer.cameraFlight.flyTo({ aabb: m.aabb, fit: true, fitFOV: 60, duration: 0.5 });
+
+                        // Create section plane at model center (inactive by default)
+                        if (sectionPlanesPluginRef.current && !sectionPlanesPluginRef.current.sectionPlanes["mySectionPlane"]) {
+                            sectionPlanesPluginRef.current.createSectionPlane({
+                                id: "mySectionPlane",
+                                pos: [centerX, centerY, centerZ],
+                                dir: [1, 0, 0],
+                                active: false
+                            });
+                            console.log("✂️ Section plane created at:", [centerX, centerY, centerZ]);
+                        }
+
+                        setIsLoading(false);
+                    });
+
+                    m.on("error", (err) => {
+                        if (!isMounted) return;
+                        console.error("❌ Model loading error:", err);
+                        setIsLoading(false);
+                    });
+                };
+
+                // Load model based on format
+                const isBlobUrl = modelUrl.startsWith("blob:");
+
+                if (modelFormat === 'stl') {
+                    const stlLoader = new STLLoaderPlugin(viewer);
+                    if (isBlobUrl) {
+                        // Blob URLs break xeokit's XHR (it appends cache-buster params).
+                        // Fetch the blob, convert to ArrayBuffer, and pass as raw data.
+                        fetch(modelUrl)
+                            .then(r => r.arrayBuffer())
+                            .then(buf => {
+                                if (!isMounted) return;
+                                loadModel(stlLoader.load({
+                                    id: "bearing",
+                                    stl: buf,
+                                    edges: true,
+                                    smoothNormals: true
+                                }));
+                            })
+                            .catch(err => {
+                                console.error("Failed to fetch STL blob:", err);
+                                setIsLoading(false);
+                            });
+                    } else {
+                        loadModel(stlLoader.load({
+                            id: "bearing",
+                            src: modelUrl,
+                            edges: true,
+                            smoothNormals: true
+                        }));
                     }
-
-                    viewer.camera.eye = [centerX + distance, centerY + distance, centerZ + distance];
-                    viewer.camera.look = [centerX, centerY, centerZ];
-
-                    viewer.cameraFlight.flyTo({ aabb: model.aabb, fit: true, fitFOV: 60, duration: 0.5 });
-
-                    // Create section plane at model center (inactive by default)
-                    if (sectionPlanesPluginRef.current && !sectionPlanesPluginRef.current.sectionPlanes["mySectionPlane"]) {
-                        const sectionPlane = sectionPlanesPluginRef.current.createSectionPlane({
-                            id: "mySectionPlane",
-                            pos: [centerX, centerY, centerZ],
-                            dir: [1, 0, 0],
-                            active: false
-                        });
-                        console.log("✂️ Section plane created at:", [centerX, centerY, centerZ]);
-                    }
-
-                    setIsLoading(false);
-                });
-
-                model.on("error", (err) => {
-                    if (!isMounted) return;
-                    console.error("❌ Model loading error:", err);
-                    setIsLoading(false);
-                });
+                } else {
+                    const gltfLoader = new GLTFLoaderPlugin(viewer);
+                    loadModel(gltfLoader.load({
+                        id: "bearing",
+                        src: modelUrl,
+                        baseUri: baseUri,
+                        edges: true,
+                        scale: currentScale,
+                        saoEnabled: false,
+                        pbrEnabled: false,
+                        backfaces: true,
+                        performance: false,
+                        combineGeometries: false,
+                        quantizeGeometry: false
+                    }));
+                }
 
             } catch (err) {
                 console.error("Viewer error:", err);

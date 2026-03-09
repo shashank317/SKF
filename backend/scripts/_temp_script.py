@@ -10,7 +10,7 @@ import Sketcher
 import Mesh
 import MeshPart
 
-OUTPUT_PATH = r"C:\\Users\\sumit\\OneDrive\\Desktop\\projects\\SKF\\SKF\\backend\\exports\\custom_model_a7b62b70.glb"
+OUTPUT_PATH = r"c:/Users/shashank/Desktop/projects/SKF3/backend/exports/test_model.glb"
 OUTPUT_FORMAT = "glb"
 
 def create_stepped_revolution():
@@ -42,17 +42,17 @@ def create_stepped_revolution():
 
     # Profile geometry (dynamic points based on input)
     segments = [
-        (V(0,     0,    0), V(0,     22.2, 0)),
-        (V(0,     22.2, 0), V(16.5,  22.2, 0)),
-        (V(16.5,  22.2, 0), V(16.5,  53.0, 0)),
-        (V(16.5,  53.0, 0), V(36.5,  53.0, 0)),
-        (V(36.5,  53.0, 0), V(36.5,  48.0, 0)),
-        (V(36.5,  48.0, 0), V(41.5,  48.0, 0)),
-        (V(41.5,  48.0, 0), V(41.5,  43.0, 0)),
-        (V(41.5,  43.0, 0), V(46.5,  43.0, 0)),
-        (V(46.5,  43.0, 0), V(46.5,  17.2, 0)),
-        (V(46.5,  17.2, 0), V(0,     17.2, 0)),
-        (V(0,     17.2, 0), V(0,     0,    0)),
+        (V(0,     0,    0), V(0,     25.0, 0)),
+        (V(0,     25.0, 0), V(13.0,  25.0, 0)),
+        (V(13.0,  25.0, 0), V(13.0,  50.0, 0)),
+        (V(13.0,  50.0, 0), V(33.0,  50.0, 0)),
+        (V(33.0,  50.0, 0), V(33.0,  48.0, 0)),
+        (V(33.0,  48.0, 0), V(50.25,  48.0, 0)),
+        (V(50.25,  48.0, 0), V(50.25,  26.0, 0)),
+        (V(50.25,  26.0, 0), V(80.25,  26.0, 0)),
+        (V(80.25,  26.0, 0), V(80.25,  16.666666666666668, 0)),
+        (V(80.25,  16.666666666666668, 0), V(0,     16.666666666666668, 0)),
+        (V(0,     16.666666666666668, 0), V(0,     0,    0)),
     ]
 
     for p1, p2 in segments:
@@ -76,16 +76,16 @@ def create_stepped_revolution():
     doc.recompute()
 
     # Dimensional Constraints (Using exact coordinates)
-    sketch.addConstraint(Sketcher.Constraint('DistanceY', -1, 1, 1, 1, 22.2))
-    sketch.addConstraint(Sketcher.Constraint('DistanceY', -1, 1, 3, 1, 53.0))
+    sketch.addConstraint(Sketcher.Constraint('DistanceY', -1, 1, 1, 1, 25.0))
+    sketch.addConstraint(Sketcher.Constraint('DistanceY', -1, 1, 3, 1, 50.0))
     sketch.addConstraint(Sketcher.Constraint('DistanceY', -1, 1, 5, 1, 48.0))
-    sketch.addConstraint(Sketcher.Constraint('DistanceY', -1, 1, 7, 1, 43.0))
-    sketch.addConstraint(Sketcher.Constraint('DistanceY', -1, 1, 9, 1, 17.2))
+    sketch.addConstraint(Sketcher.Constraint('DistanceY', -1, 1, 7, 1, 26.0))
+    sketch.addConstraint(Sketcher.Constraint('DistanceY', -1, 1, 9, 1, 16.666666666666668))
 
-    sketch.addConstraint(Sketcher.Constraint('DistanceX', -1, 1, 1, 2, 16.5))
-    sketch.addConstraint(Sketcher.Constraint('DistanceX', -1, 1, 3, 2, 36.5))
-    sketch.addConstraint(Sketcher.Constraint('DistanceX', -1, 1, 5, 2, 41.5))
-    sketch.addConstraint(Sketcher.Constraint('DistanceX', -1, 1, 7, 2, 46.5))
+    sketch.addConstraint(Sketcher.Constraint('DistanceX', -1, 1, 1, 2, 13.0))
+    sketch.addConstraint(Sketcher.Constraint('DistanceX', -1, 1, 3, 2, 33.0))
+    sketch.addConstraint(Sketcher.Constraint('DistanceX', -1, 1, 5, 2, 50.25))
+    sketch.addConstraint(Sketcher.Constraint('DistanceX', -1, 1, 7, 2, 80.25))
     
     doc.recompute()
     sketch.Visibility = False

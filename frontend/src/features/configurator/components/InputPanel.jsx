@@ -124,7 +124,7 @@ const StepHeader = ({ step, status, isLocked, isActive, onClick }) => {
 /* ========================================
    MAIN INPUT PANEL COMPONENT
    ======================================== */
-const InputPanel = ({ schema, values, onChange, onReset, onApply }) => {
+const InputPanel = ({ schema, values, onChange, onReset, onApply, submitErrors = [], inlineErrors = {} }) => {
     const [activeStepId, setActiveStepId] = useState(null);
     const [fieldErrors, setFieldErrors] = useState({});
 
@@ -176,7 +176,7 @@ const InputPanel = ({ schema, values, onChange, onReset, onApply }) => {
                                         param={p}
                                         value={values[p.key]}
                                         onChange={handleChange}
-                                        error={fieldErrors[p.key]}
+                                        error={inlineErrors[p.key] || fieldErrors[p.key]}
                                     />
                                 ))}
                             </div>
@@ -192,7 +192,7 @@ const InputPanel = ({ schema, values, onChange, onReset, onApply }) => {
                                         param={p}
                                         value={values[p.key]}
                                         onChange={handleChange}
-                                        error={fieldErrors[p.key]}
+                                        error={inlineErrors[p.key] || fieldErrors[p.key]}
                                     />
                                 ))}
                             </div>
@@ -214,7 +214,7 @@ const InputPanel = ({ schema, values, onChange, onReset, onApply }) => {
                         param={p}
                         value={values[p.key]}
                         onChange={handleChange}
-                        error={fieldErrors[p.key]}
+                        error={inlineErrors[p.key] || fieldErrors[p.key]}
                     />
                 ))}
             </div>
@@ -280,6 +280,14 @@ const InputPanel = ({ schema, values, onChange, onReset, onApply }) => {
                         </div>
                     );
                 })}
+
+                {submitErrors && submitErrors.length > 0 && (
+                    <div className="validation-errors visible" style={{ margin: '0 1rem 12px 1rem' }}>
+                        {submitErrors.map((err, i) => (
+                            <p key={i}>{err}</p>
+                        ))}
+                    </div>
+                )}
 
                 {onApply && (
                     <div className="panel-actions-bottom">

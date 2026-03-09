@@ -394,3 +394,25 @@
     font-size: 0.625rem;
     color: #64748b;
 }
+
+/* ============================================
+   VALIDATION SUMMARY BOX
+   ============================================ */
+.validation-errors {
+    background: rgba(231, 76, 94, 0.1);
+    border: 1px solid rgba(231, 76, 94, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    display: none;
+}
+
+.validation-errors.visible {
+    display: block;
+}
+
+.validation-errors p {
+    font-size: 0.75rem;
+    color: #e74c5e;
+    margin: 4px 0;
+}

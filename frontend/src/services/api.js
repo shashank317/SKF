@@ -120,8 +120,88 @@ export async function generateCustomModel(data) {
     throw new Error(errorMessage);
   }
 
-  // Response is binary .glb — create a Blob URL
+  // Response is binary — create a Blob URL and capture format
+  const contentType = response.headers.get("content-type") || "";
+  const format = contentType.includes("stl") ? "stl" : "gltf";
   const blob = await response.blob();
   const blobUrl = URL.createObjectURL(blob);
-  return blobUrl;
+  return { url: blobUrl, format };
+}
+
+// --- Custom Model Generation (T-Bolt) ---
+
+export async function generateTBoltModel(data) {
+  const rootUrl = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace("/api/v1", "");
+  const url = `${rootUrl}/api/generate-tbolt`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.detail) errorMessage = errorData.detail;
+    } catch {
+      // Ignore JSON parse error on binary response
+    }
+    throw new Error(errorMessage);
+  }
+
+  // Response is binary — create a Blob URL
+  const contentType = response.headers.get("content-type") || "";
+  const format = contentType.includes("stl") ? "stl" : "gltf";
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  return { url: blobUrl, format };
+}
+
+// --- Download Latest CAD Files (ZIP) ---
+
+export async function downloadLatestCadFiles(fileNum = null) {
+  const rootUrl = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace("/api/v1", "");
+  let url = `${rootUrl}/api/download-latest-cad`;
+  if (fileNum !== null) {
+    url += `?file_num=${fileNum}`;
+  }
+
+  const response = await fetch(url, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.detail) errorMessage = errorData.detail;
+    } catch {
+      // Ignore JSON parse error on binary response
+    }
+    throw new Error(errorMessage);
+  }
+
+  // Response is a ZIP file — trigger download
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  
+  // Get filename from Content-Disposition header or use default
+  const contentDisposition = response.headers.get("content-disposition") || "";
+  const filenameMatch = contentDisposition.match(/filename=([^;]+)/);
+  const filename = filenameMatch ? filenameMatch[1] : "cad_files.zip";
+  
+  // Create download link and trigger
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  // Cleanup
+  URL.revokeObjectURL(blobUrl);
+  
+  return { success: true, filename };
 }

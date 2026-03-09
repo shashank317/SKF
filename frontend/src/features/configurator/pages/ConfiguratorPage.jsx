@@ -5,7 +5,7 @@ import Preview3D from "../components/Preview3D";
 import InputPanel from "../components/InputPanel";
 import logo from "../../../assets/CLOGO.png";
 import "./ConfiguratorPage.css";
-import { createConfiguration, generateCustomModel } from "../../../services/api";
+import { createConfiguration, generateCustomModel, generateTBoltModel } from "../../../services/api";
 import { SCHEMAS, getSchemabyId } from "../../../constants/schemas";
 
 function ConfiguratorPage() {
@@ -23,6 +23,8 @@ function ConfiguratorPage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const containerRef = useRef(null);
     const [configId, setConfigId] = useState(null);
+    const [submitErrors, setSubmitErrors] = useState([]);
+    const [inlineErrors, setInlineErrors] = useState({});
     const modelRefDimensionsRef = useRef(null); // AABB from first model load (ref to avoid re-render loop)
 
     // Get current schema object
@@ -189,17 +191,95 @@ function ConfiguratorPage() {
         setActiveSchemaId(newSchemaId);
         setFormState({}); // Clear form on schema change
         setIsModelVisible(false); // Hide 3D model
-        if (dynamicModelUrl) URL.revokeObjectURL(dynamicModelUrl);
+        setSubmitErrors([]); // Clear errors
+        setInlineErrors({});
+        if (dynamicModelUrl) {
+            if (typeof dynamicModelUrl === 'object') URL.revokeObjectURL(dynamicModelUrl.url);
+            else URL.revokeObjectURL(dynamicModelUrl);
+        }
         setDynamicModelUrl(null); // Reset dynamic model URL
         modelRefDimensionsRef.current = null; // Reset reference dimensions for new model
     };
 
+    // --- Dynamic Validation Effect (Replicating @free index.html logic) ---
+    useEffect(() => {
+        if (activeSchemaId === 'RS') {
+            const rd = parseFloat(formState.roller_diameter);
+            const bw = parseFloat(formState.bearing_width);
+            const sd = parseFloat(formState.shaft_diameter);
+            const oh = parseFloat(formState.overall_height);
+            const bsw = parseFloat(formState.base_width);
+
+            const errors = [];
+
+            // Baseline ranges
+            if (isNaN(sd) || sd < 5 || sd > 200) errors.push({ field: "shaft_diameter", msg: "Shaft diameter must be between 5 and 200 mm" });
+            if (isNaN(bw) || bw < 5 || bw > 200) errors.push({ field: "bearing_width", msg: "Bearing width must be between 5 and 200 mm" });
+            if (isNaN(oh) || oh < 20 || oh > 500) errors.push({ field: "overall_height", msg: "Overall height must be between 20 and 500 mm" });
+            if (isNaN(bsw) || bsw < 20 || bsw > 500) errors.push({ field: "base_width", msg: "Base width must be between 20 and 500 mm" });
+            if (isNaN(rd) || rd < 30 || rd > 1000) errors.push({ field: "roller_diameter", msg: "Roller diameter must be between 30 and 1000 mm" });
+
+            // Cross-field constraints
+            if (!isNaN(sd) && sd <= 0) errors.push({ field: "shaft_diameter", msg: "Shaft diameter must be greater than 0" });
+            if (!isNaN(oh) && oh < 10) errors.push({ field: "overall_height", msg: "Overall height must be at least 10 mm" });
+            if (!isNaN(rd) && !isNaN(sd) && rd <= sd) errors.push({ field: "roller_diameter", msg: "Roller diameter must be larger than shaft diameter" });
+            if (!isNaN(bsw) && !isNaN(sd) && bsw <= sd) errors.push({ field: "base_width", msg: "Base width must be larger than shaft diameter" });
+            if (!isNaN(bw) && !isNaN(oh) && bw >= oh) errors.push({ field: "bearing_width", msg: "Bearing width must be less than overall height" });
+            if (!isNaN(rd) && !isNaN(bsw) && rd - bsw < 10) errors.push({ field: "roller_diameter", msg: "Roller diameter minus base width must be at least 10 mm" });
+
+            const newInline = {};
+            const newSummary = [];
+
+            errors.forEach(({ field, msg }) => {
+                if (!newInline[field]) newInline[field] = msg; // First error for this field goes inline
+                else newSummary.push(msg); // Overflow errors go to summary box
+            });
+
+            setInlineErrors(newInline);
+            setSubmitErrors(newSummary);
+
+        } else if (activeSchemaId === 'T_BOLT') {
+            const l = parseFloat(formState.VAR04);
+            const w = parseFloat(formState.FIX02);
+            const k = parseFloat(formState.FIX04);
+            const m = formState.VAR02 || 'M10';
+            const threadLength = parseFloat(formState.FIX08);
+            const threadRad = parseFloat(m.replace('M', '')) / 2.0;
+
+            const errors = [];
+
+            if (isNaN(l) || l <= 0) errors.push({ field: "VAR04", msg: "Total Length (L) must be greater than 0" });
+            if (isNaN(w) || w <= 0) errors.push({ field: "FIX02", msg: "Head Width (W) must be greater than 0" });
+            if (isNaN(k) || k <= 0) errors.push({ field: "FIX04", msg: "Head Height (K) must be greater than 0" });
+            if (!isNaN(w) && w / 2.0 <= threadRad) errors.push({ field: "FIX02", msg: "Head Width must be larger than Thread Size" });
+            if (!isNaN(threadLength) && !isNaN(l) && threadLength > l) errors.push({ field: "FIX08", msg: "Thread Length cannot be strictly greater than Total Length" });
+
+            const newInline = {};
+            const newSummary = [];
+            errors.forEach(({ field, msg }) => {
+                if (!newInline[field]) newInline[field] = msg;
+                else newSummary.push(msg);
+            });
+            setInlineErrors(newInline);
+            setSubmitErrors(newSummary);
+        } else {
+            setInlineErrors({});
+            setSubmitErrors([]);
+        }
+    }, [formState, activeSchemaId]);
+
     const handleApply = async () => {
         try {
             console.log("Saving configuration...", formState);
+            setSubmitErrors([]);
 
             // --- RS Schema: Generate custom 3D model via FreeCAD ---
             if (activeSchemaId === 'RS') {
+                if (Object.keys(inlineErrors).length > 0 || submitErrors.length > 0) {
+                    alert("Please fix the validation errors before applying.");
+                    return;
+                }
+
                 setIsGenerating(true);
                 const modelPayload = {
                     roller_diameter: parseFloat(formState.roller_diameter) || 0,
@@ -209,30 +289,42 @@ function ConfiguratorPage() {
                     base_width: parseFloat(formState.base_width) || 0,
                 };
 
-                const { roller_diameter: rd, bearing_width: bw, shaft_diameter: sd, overall_height: oh, base_width: bsw } = modelPayload;
-                const errors = [];
-                if (sd <= 0) errors.push("Shaft diameter must be greater than 0.");
-                if (oh < 10) errors.push("Overall height must be at least 10 mm.");
-                if (rd <= sd) errors.push("Roller diameter must be larger than shaft diameter.");
-                if (bsw <= sd) errors.push("Base width must be larger than shaft diameter.");
-                if (bw >= oh) errors.push("Bearing width must be less than overall height.");
-                if (rd - bsw < 10) errors.push("Roller diameter minus base width must be at least 10 mm.");
+                console.log("Generating custom RS model...", modelPayload);
+                const result = await generateCustomModel(modelPayload);
+                console.log("Model payload info:", result);
 
-                if (errors.length > 0) {
-                    setIsGenerating(false);
-                    alert("Invalid Dimensions:\n\n" + errors.join("\n"));
+                // Set the blob object as the model source for the 3D viewer
+                setDynamicModelUrl(result);
+                setIsModelVisible(true);
+                setIsGenerating(false);
+                return;
+            }
+
+            // --- T_BOLT Schema: Generate custom 3D model via FreeCAD ---
+            if (activeSchemaId === 'T_BOLT') {
+                if (Object.keys(inlineErrors).length > 0 || submitErrors.length > 0) {
+                    alert("Please fix the validation errors before applying.");
                     return;
                 }
 
-                console.log("Generating custom RS model...", modelPayload);
-                const blobUrl = await generateCustomModel(modelPayload);
-                console.log("Model blob URL:", blobUrl);
+                setIsGenerating(true);
+                const modelPayload = {
+                    m: formState.VAR02 || 'M10',
+                    l: parseFloat(formState.VAR04) || 20,
+                    head_width: parseFloat(formState.FIX02) || 12,
+                    head_height: parseFloat(formState.FIX04) || 6,
+                    slot_width: parseFloat(formState.FIX06) || 10,
+                    thread_length: parseFloat(formState.FIX08) || 15,
+                };
 
-                // Set the blob URL as the model source for the 3D viewer
-                setDynamicModelUrl(blobUrl);
+                console.log("Generating custom T-Bolt model...", modelPayload);
+                const result = await generateTBoltModel(modelPayload);
+                console.log("Model payload info:", result);
+
+                // Set the blob object as the model source for the 3D viewer
+                setDynamicModelUrl(result);
                 setIsModelVisible(true);
                 setIsGenerating(false);
-                alert("Custom model generated successfully!");
                 return;
             }
 
@@ -267,6 +359,8 @@ function ConfiguratorPage() {
 
     const handleReset = () => {
         setFormState({});
+        setSubmitErrors([]);
+        setInlineErrors({});
         setIsModelVisible(false);
         setDynamicModelUrl(null);
     };
@@ -371,6 +465,8 @@ function ConfiguratorPage() {
                         onChange={handleParamChange}
                         onReset={handleReset}
                         onApply={handleApply}
+                        submitErrors={submitErrors}
+                        inlineErrors={inlineErrors}
                     />
                 </div>
 
@@ -394,8 +490,10 @@ function ConfiguratorPage() {
                     <Preview3D
                         showModel={isModelVisible}
                         configId={configId}
-                        modelUrl={activeModelUrl}
+                        modelUrl={dynamicModelUrl?.url || dynamicModelUrl}
+                        modelFormat={dynamicModelUrl?.format || 'gltf'}
                         modelScale={modelScale}
+                        schemaId={activeSchemaId}
                         onModelInfo={(info) => {
                             if (!modelRefDimensionsRef.current) {
                                 console.log('📐 Captured reference dimensions:', info);
