@@ -5,7 +5,7 @@ import Preview3D from "../components/Preview3D";
 import InputPanel from "../components/InputPanel";
 import logo from "../../../assets/CLOGO.png";
 import "./ConfiguratorPage.css";
-import { createConfiguration } from "../../../services/api";
+import { createConfiguration, generateCustomModel } from "../../../services/api";
 import { SCHEMAS, getSchemabyId } from "../../../constants/schemas";
 
 function ConfiguratorPage() {
@@ -19,6 +19,8 @@ function ConfiguratorPage() {
     const [isResizing, setIsResizing] = useState(false);
     const [activeTab, setActiveTab] = useState(null); // null = no tab panel open
     const [isModelVisible, setIsModelVisible] = useState(false);
+    const [dynamicModelUrl, setDynamicModelUrl] = useState(null);
+    const [isGenerating, setIsGenerating] = useState(false);
     const containerRef = useRef(null);
     const [configId, setConfigId] = useState(null);
     const modelRefDimensionsRef = useRef(null); // AABB from first model load (ref to avoid re-render loop)
@@ -38,7 +40,7 @@ function ConfiguratorPage() {
         RS: "/Roller_supporter.glb"
     };
 
-    const activeModelUrl = MODEL_PATHS[activeSchemaId];
+    const activeModelUrl = dynamicModelUrl || MODEL_PATHS[activeSchemaId];
 
     /**
      * Dynamic 3D Scaling Logic
@@ -72,8 +74,8 @@ function ConfiguratorPage() {
             }
 
             // Get user inputs
-            const rawL = formState.VAR04; // Total Length / Bearing Width
-            const rawD = formState.VAR02; // Thread Size / Roller Diameter
+            const rawL = formState.bearing_width; // Total Length / Bearing Width
+            const rawD = formState.roller_diameter; // Thread Size / Roller Diameter
 
             let inputL = parseFloat(rawL);
             let inputD = parseFloat(rawD);
@@ -187,20 +189,60 @@ function ConfiguratorPage() {
         setActiveSchemaId(newSchemaId);
         setFormState({}); // Clear form on schema change
         setIsModelVisible(false); // Hide 3D model
+        if (dynamicModelUrl) URL.revokeObjectURL(dynamicModelUrl);
+        setDynamicModelUrl(null); // Reset dynamic model URL
         modelRefDimensionsRef.current = null; // Reset reference dimensions for new model
     };
 
     const handleApply = async () => {
         try {
             console.log("Saving configuration...", formState);
-            // Default params structure required by backend
+
+            // --- RS Schema: Generate custom 3D model via FreeCAD ---
+            if (activeSchemaId === 'RS') {
+                setIsGenerating(true);
+                const modelPayload = {
+                    roller_diameter: parseFloat(formState.roller_diameter) || 0,
+                    bearing_width: parseFloat(formState.bearing_width) || 0,
+                    shaft_diameter: parseFloat(formState.shaft_diameter) || 0,
+                    overall_height: parseFloat(formState.overall_height) || 0,
+                    base_width: parseFloat(formState.base_width) || 0,
+                };
+
+                const { roller_diameter: rd, bearing_width: bw, shaft_diameter: sd, overall_height: oh, base_width: bsw } = modelPayload;
+                const errors = [];
+                if (sd <= 0) errors.push("Shaft diameter must be greater than 0.");
+                if (oh < 10) errors.push("Overall height must be at least 10 mm.");
+                if (rd <= sd) errors.push("Roller diameter must be larger than shaft diameter.");
+                if (bsw <= sd) errors.push("Base width must be larger than shaft diameter.");
+                if (bw >= oh) errors.push("Bearing width must be less than overall height.");
+                if (rd - bsw < 10) errors.push("Roller diameter minus base width must be at least 10 mm.");
+
+                if (errors.length > 0) {
+                    setIsGenerating(false);
+                    alert("Invalid Dimensions:\n\n" + errors.join("\n"));
+                    return;
+                }
+
+                console.log("Generating custom RS model...", modelPayload);
+                const blobUrl = await generateCustomModel(modelPayload);
+                console.log("Model blob URL:", blobUrl);
+
+                // Set the blob URL as the model source for the 3D viewer
+                setDynamicModelUrl(blobUrl);
+                setIsModelVisible(true);
+                setIsGenerating(false);
+                alert("Custom model generated successfully!");
+                return;
+            }
+
+            // --- All other schemas: Save configuration to DB ---
             const payload = {
                 part_number: formState.part_number || "UNKNOWN",
                 surface_treatment: formState.surface_treatment,
                 number_of_blocks: formState.number_of_blocks ? parseInt(formState.number_of_blocks) : undefined,
                 geometry_params: { ...formState },
                 status: "draft",
-                // We might want to send the schema_type if backend supports it later
                 schema_type: activeSchemaId
             };
 
@@ -210,8 +252,9 @@ function ConfiguratorPage() {
             setIsModelVisible(true);
             alert("Configuration saved to backend! ID: " + response.id);
         } catch (error) {
-            console.error("Failed to save configuration:", error);
-            alert("Error saving to backend: " + error.message);
+            console.error("Failed to save/generate:", error);
+            setIsGenerating(false);
+            alert("Error: " + error.message);
         }
     };
 
@@ -225,6 +268,7 @@ function ConfiguratorPage() {
     const handleReset = () => {
         setFormState({});
         setIsModelVisible(false);
+        setDynamicModelUrl(null);
     };
 
     // Resize handler

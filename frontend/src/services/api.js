@@ -95,3 +95,33 @@ export async function getExport(id) {
 export async function getExportsByConfiguration(configId) {
   return request(`/exports/configuration/${configId}`);
 }
+
+// --- Custom Model Generation (Roller Support) ---
+
+export async function generateCustomModel(data) {
+  // This endpoint is at /api/generate-cad (not under /api/v1)
+  const rootUrl = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace("/api/v1", "");
+  const url = `${rootUrl}/api/generate-cad`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.detail) errorMessage = errorData.detail;
+    } catch {
+      // Ignore JSON parse error on binary response
+    }
+    throw new Error(errorMessage);
+  }
+
+  // Response is binary .glb — create a Blob URL
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  return blobUrl;
+}

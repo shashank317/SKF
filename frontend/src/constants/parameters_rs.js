@@ -39,18 +39,18 @@ export const PARAMETERS = {
     // ============ STEP 2: DIMENSIONS ============
     ROLLER_DIA: {
         label: 'D (Roller Diameter)',
-        key: 'VAR02',
+        key: 'roller_diameter',
         unit: 'mm',
         type: 'number',
         input: 'number',
         required: true,
         step: 'dimensions',
-        validation: { min: 10, max: 500 }
+        validation: { min: 30, max: 1000 }
     },
 
     BEARING_WIDTH: {
         label: 'B (Bearing Width)',
-        key: 'VAR04',
+        key: 'bearing_width',
         unit: 'mm',
         type: 'number',
         input: 'number',
@@ -61,46 +61,35 @@ export const PARAMETERS = {
 
     SHAFT_DIA: {
         label: 'd (Shaft Diameter)',
-        key: 'FIX02',
+        key: 'shaft_diameter',
         unit: 'mm',
         type: 'number',
         input: 'number',
         required: false,
         step: 'dimensions',
-        validation: { min: 0 }
+        validation: { min: 5, max: 200 }
     },
 
     OVERALL_HEIGHT: {
         label: 'H (Overall Height)',
-        key: 'FIX04',
+        key: 'overall_height',
         unit: 'mm',
         type: 'number',
         input: 'number',
         required: false,
         step: 'dimensions',
-        validation: { min: 0 }
+        validation: { min: 20, max: 500 }
     },
 
     BASE_WIDTH: {
         label: 'W (Base Width)',
-        key: 'FIX06',
+        key: 'base_width',
         unit: 'mm',
         type: 'number',
         input: 'number',
         required: false,
         step: 'dimensions',
-        validation: { min: 0 }
-    },
-
-    LOAD_CAPACITY: {
-        label: 'Load Capacity',
-        key: 'FIX08',
-        unit: 'kN',
-        type: 'number',
-        input: 'number',
-        required: false,
-        step: 'dimensions',
-        validation: { min: 0 }
+        validation: { min: 20, max: 500 }
     },
 
     // ============ STEP 3: DOCUMENTATION ============

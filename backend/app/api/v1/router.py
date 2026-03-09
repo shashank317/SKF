@@ -3,7 +3,7 @@ API V1 Router - Aggregates all V1 routes
 Path: app/api/v1/router.py
 """
 from fastapi import APIRouter
-from app.api.v1.routes import configurations, exports
+from app.api.v1.routes import configurations, exports, custom_model
 
 # Create main API router
 api_router = APIRouter()
@@ -20,4 +20,11 @@ api_router.include_router(
     exports.router,
     prefix="/exports",
     tags=["Exports"]
+)
+
+# Include custom model generation routes
+api_router.include_router(
+    custom_model.router,
+    prefix="/custom-model",
+    tags=["Custom Model"]
 )

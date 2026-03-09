@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.database import engine, Base
 from app.core.config import settings
 from app.api.v1.router import api_router
+from app.api.v1.routes import custom_model
 from app.db import models  # Import models to ensure they're registered
 
 # Create database tables on startup
@@ -42,6 +43,9 @@ app.mount("/downloads", StaticFiles(directory=str(EXPORTS_DIR)), name="downloads
 
 # Include API router with /api/v1 prefix
 app.include_router(api_router, prefix="/api/v1")
+
+# Include custom model generation route at /api (for FreeCAD CAD generation)
+app.include_router(custom_model.router, prefix="/api", tags=["Custom Model"])
 
 
 @app.get("/", tags=["Root"])
