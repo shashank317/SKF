@@ -21,9 +21,9 @@
   --radius-lg: 20px;
   --radius-xl: 28px;
 
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.12);
 }
 
@@ -243,8 +243,17 @@ section {
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.3); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.3);
+  }
 }
 
 /* Accent text */
@@ -668,6 +677,37 @@ section {
 }
 
 /* =========================
+   RESPONSIVE (TABLET)
+   ========================= */
+@media (max-width: 1024px) {
+  .hero {
+    padding: 80px 6% 60px;
+    gap: 40px;
+  }
+
+  .capabilities {
+    gap: 40px;
+    padding: 80px 6% 40px;
+  }
+
+  .workflow-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .workflow {
+    padding: 80px 6%;
+  }
+
+  .configurator-main {
+    min-height: calc(100vh - 56px);
+  }
+
+  .grid-2-col {
+    gap: 10px;
+  }
+}
+
+/* =========================
    RESPONSIVE (MOBILE)
    ========================= */
 @media (max-width: 768px) {
@@ -801,12 +841,23 @@ section {
 }
 
 @keyframes hero-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes hero-pulse {
-  0%, 100% { opacity: 0.7; transform: scale(0.85); }
-  50% { opacity: 1; transform: scale(1); }
+
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.85);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .loading-title {
@@ -831,12 +882,25 @@ section {
   animation: dots-bounce 1.4s infinite ease-in-out both;
 }
 
-.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
 
 @keyframes dots-bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+
+  40% {
+    transform: scale(1);
+  }
 }
 
 /* =========================

@@ -416,3 +416,163 @@
     color: #e74c5e;
     margin: 4px 0;
 }
+
+/* ============================================
+   RESPONSIVE — TABLET (≤ 1024px)
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .configurator-header {
+        padding: 0 1rem;
+        gap: 0.5rem;
+    }
+
+    .product-selector {
+        gap: 0.5rem;
+    }
+
+    .selector-label {
+        display: none;
+    }
+
+    .bottom-tab-btn {
+        padding: 8px 12px;
+        font-size: 0.7rem;
+    }
+}
+
+/* ============================================
+   RESPONSIVE — MOBILE (≤ 768px)
+   ============================================ */
+
+@media (max-width: 768px) {
+    .configurator-header {
+        height: auto;
+        min-height: 56px;
+        flex-wrap: wrap;
+        padding: 0.5rem 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .header-left {
+        gap: 0.5rem;
+    }
+
+    .header-right {
+        width: 100%;
+    }
+
+    .product-selector {
+        width: 100%;
+    }
+
+    .schema-select {
+        flex: 1;
+        width: 100%;
+    }
+
+    /* Stack input panel above 3D preview */
+    .configurator-main {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: minmax(0, 1fr) minmax(300px, 1fr);
+        min-height: auto;
+        height: auto;
+    }
+
+    .left-side {
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+
+    .result-panel {
+        max-height: none;
+        height: 50vh;
+        min-height: 300px;
+    }
+
+    .result-panel-3d {
+        height: 50vh;
+        min-height: 300px;
+    }
+
+    /* Hide resize handle via CSS fallback */
+    .resize-handle {
+        display: none;
+    }
+
+    /* Bottom tabs */
+    .bottom-tabs-container {
+        padding: 10px 0.75rem;
+    }
+
+    .bottom-tabs-navigation {
+        gap: 4px;
+        padding: 4px;
+    }
+
+    .bottom-tab-btn {
+        padding: 8px 12px;
+        font-size: 0.7rem;
+        gap: 6px;
+    }
+
+    /* Footer */
+    .configurator-footer {
+        padding: 0.75rem 1rem;
+    }
+
+    .footer-brand {
+        font-size: 0.55rem;
+    }
+
+    .footer-text {
+        font-size: 0.55rem;
+    }
+
+    .tab-content-inner {
+        padding: 1.25rem;
+    }
+}
+
+/* ============================================
+   RESPONSIVE — SMALL MOBILE (≤ 480px)
+   ============================================ */
+
+@media (max-width: 480px) {
+    .configurator-header {
+        padding: 0.4rem 0.5rem;
+    }
+
+    .back-to-select-btn {
+        font-size: 1.2rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    .schema-select {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.6rem;
+    }
+
+    /* Hide tab text, keep icon only */
+    .bottom-tab-btn span {
+        display: none;
+    }
+
+    .bottom-tab-btn {
+        padding: 10px;
+        gap: 0;
+    }
+
+    .left-side {
+        max-height: 45vh;
+    }
+
+    .result-panel-3d {
+        height: 55vh;
+        min-height: 250px;
+    }
+
+    .tab-content-inner h2 {
+        font-size: 1.125rem;
+    }
+}

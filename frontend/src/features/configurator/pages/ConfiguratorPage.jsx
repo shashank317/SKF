@@ -16,6 +16,7 @@ function ConfiguratorPage() {
     const [formState, setFormState] = useState({});
     const [activeSchemaId, setActiveSchemaId] = useState(initialType);
     const [leftWidth, setLeftWidth] = useState(30); // Percentage - 30% input, 70% preview
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [isResizing, setIsResizing] = useState(false);
     const [activeTab, setActiveTab] = useState(null); // null = no tab panel open
     const [isModelVisible, setIsModelVisible] = useState(false);
@@ -410,6 +411,14 @@ function ConfiguratorPage() {
         };
     }, [isResizing]);
 
+    // Responsive: detect mobile/tablet
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 768px)');
+        const handler = (e) => setIsMobile(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
+
 
     return (
         <div className="configurator-page">
@@ -454,7 +463,7 @@ function ConfiguratorPage() {
                 className="configurator-main"
                 ref={containerRef}
                 style={{
-                    gridTemplateColumns: `${leftWidth}% 4px ${100 - leftWidth}%`
+                    gridTemplateColumns: isMobile ? '1fr' : `${leftWidth}% 4px ${100 - leftWidth}%`
                 }}
             >
                 {/* Left: Inputs & Actions */}
@@ -470,20 +479,22 @@ function ConfiguratorPage() {
                     />
                 </div>
 
-                {/* Resize Handle */}
-                <div
-                    className={`resize-handle ${isResizing ? 'resizing' : ''}`}
-                    onMouseDown={handleMouseDown}
-                >
-                    <div className="resize-handle-bar">
-                        <div className="resize-handle-icon">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M6 4L2 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                <path d="M10 4L14 8L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                {/* Resize Handle – hidden on mobile */}
+                {!isMobile && (
+                    <div
+                        className={`resize-handle ${isResizing ? 'resizing' : ''}`}
+                        onMouseDown={handleMouseDown}
+                    >
+                        <div className="resize-handle-bar">
+                            <div className="resize-handle-icon">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M6 4L2 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M10 4L14 8L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* Right: 3D Preview */}
                 <section className="result-panel result-panel-3d">

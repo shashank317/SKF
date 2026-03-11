@@ -563,29 +563,52 @@
 }
 
 /* ============================================
-   RESPONSIVE
+   RESPONSIVE — TABLET (≤ 1024px)
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .navcube-canvas {
+        left: auto;
+        right: 0.5rem;
+        top: 2rem;
+        transform: none;
+    }
+}
+
+/* ============================================
+   RESPONSIVE — MOBILE (≤ 768px)
    ============================================ */
 
 @media (max-width: 768px) {
     .preview3d-header {
-        padding: 1rem;
+        padding: 0.75rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
 
     .header-title {
-        font-size: 1.125rem;
+        font-size: 1rem;
     }
 
     .header-subtitle {
-        font-size: 0.75rem;
+        display: none;
     }
 
+    /* Dock: center at bottom */
     .floating-dock {
-        bottom: 1rem;
+        top: auto;
+        bottom: 0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
     }
 
     .dock-container {
         gap: 0.25rem;
         padding: 0.375rem;
+    }
+
+    .dock-container:hover {
+        transform: none;
     }
 
     .dock-btn {
@@ -597,18 +620,95 @@
         height: 1.25rem;
     }
 
+    /* NavCube: top-right corner */
     .navcube-canvas {
-        width: 150px;
-        height: 150px;
-        bottom: 10px;
-        right: 10px;
+        left: auto;
+        right: 0.5rem;
+        top: 0.5rem;
+        transform: none;
+        width: 100px;
+        height: 100px;
     }
 
     .axisgizmo-canvas {
-        width: 90px;
-        height: 90px;
-        bottom: 10px;
+        width: 80px;
+        height: 80px;
+        bottom: 70px;
         left: 10px;
+    }
+
+    .instruction-toast {
+        top: 4rem;
+    }
+
+    .status-pill {
+        padding: 0.25rem 0.5rem;
+    }
+
+    .status-text {
+        font-size: 0.65rem;
+    }
+}
+
+/* ============================================
+   RESPONSIVE — SMALL MOBILE (≤ 480px)
+   ============================================ */
+
+@media (max-width: 480px) {
+    .preview3d-header {
+        padding: 0.5rem;
+    }
+
+    .header-title {
+        font-size: 0.875rem;
+        gap: 0.25rem;
+    }
+
+    .header-icon {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    .floating-dock {
+        bottom: 0.5rem;
+    }
+
+    .dock-btn {
+        padding: 0.5rem;
+    }
+
+    .btn-icon {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    .navcube-canvas {
+        width: 80px;
+        height: 80px;
+    }
+
+    .axisgizmo-canvas {
+        width: 60px;
+        height: 60px;
+        bottom: 60px;
+    }
+
+    .placeholder-content {
+        max-width: 280px;
+        padding: 2rem 1.25rem;
+    }
+
+    .placeholder-content h2 {
+        font-size: 1.25rem;
+    }
+
+    .placeholder-content p {
+        font-size: 0.9rem;
+    }
+
+    .download-cad-btn {
+        font-size: 0.65rem;
+        padding: 0.3rem 0.6rem;
     }
 }
 
