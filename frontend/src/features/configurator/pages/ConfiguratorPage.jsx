@@ -68,57 +68,15 @@ function ConfiguratorPage() {
     const calculateModelScale = () => {
         const baseLength = BASE_LENGTHS[activeSchemaId] || 1000;
 
-        // T-Bolt and Roller Support: scale based on user dimensions
-        // Uses the AABB from the first model load as reference
+        // T-Bolt and Roller Support
         if (['T_BOLT', 'RS'].includes(activeSchemaId)) {
-            if (!modelRefDimensionsRef.current) {
-                // First load: use uniform 1000x (meters → mm), AABB will be captured
-                return [1000, 1000, 1000];
+            // When FreeCAD generates the model with exact user dimensions,
+            // just use uniform scale (no axis-stretching needed).
+            if (dynamicModelUrl) {
+                return [1, 1, 1];
             }
-
-            // Get user inputs
-            const rawL = formState.bearing_width; // Total Length / Bearing Width
-            const rawD = formState.roller_diameter; // Thread Size / Roller Diameter
-
-            let inputL = parseFloat(rawL);
-            let inputD = parseFloat(rawD);
-
-            // Handle "M10" style strings
-            if (isNaN(inputD) && typeof rawD === 'string') {
-                inputD = parseFloat(rawD.replace(/[^\d.]/g, ''));
-            }
-
-            // If no valid inputs yet, show at natural size
-            if ((isNaN(inputL) || inputL <= 0) && (isNaN(inputD) || inputD <= 0)) {
-                return [1000, 1000, 1000];
-            }
-
-            // Reference dimensions from AABB (in mm, since first load was at 1000x)
-            const refX = modelRefDimensionsRef.current.sizeX;
-            const refY = modelRefDimensionsRef.current.sizeY;
-            const refZ = modelRefDimensionsRef.current.sizeZ;
-
-            // Determine which axis is length (longest) and which is diameter
-            const refLength = Math.max(refX, refY, refZ);
-            const refDiameter = Math.min(refX, refY, refZ);
-
-            // Calculate scale ratios
-            const ratioL = (!isNaN(inputL) && inputL > 0) ? inputL / refLength : 1;
-            const ratioD = (!isNaN(inputD) && inputD > 0) ? inputD / refDiameter : 1;
-
-            // Apply ratio to the correct axes
-            // Longest axis gets length ratio, shortest axes get diameter ratio
-            let scale;
-            if (refX === refLength) {
-                scale = [1000 * ratioL, 1000 * ratioD, 1000 * ratioD];
-            } else if (refY === refLength) {
-                scale = [1000 * ratioD, 1000 * ratioL, 1000 * ratioD];
-            } else {
-                scale = [1000 * ratioD, 1000 * ratioD, 1000 * ratioL];
-            }
-
-            console.log(`🔩 ${activeSchemaId} Dynamic Scale:`, { refLength, refDiameter, inputL, inputD, ratioL, ratioD, scale });
-            return scale;
+            // Static reference model (no custom generation yet): uniform unit conversion
+            return [1000, 1000, 1000];
         }
 
         // For standard bolts: Scale based on Diameter (D) and Length (L)

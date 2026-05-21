@@ -318,6 +318,9 @@ def export_model(doc):
 
 doc = create_tbolt()
 export_model(doc)
+
+import sys
+sys.exit(0)
 '''
 
 

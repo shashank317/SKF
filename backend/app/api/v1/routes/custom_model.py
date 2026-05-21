@@ -11,7 +11,7 @@ import io
 import zipfile
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, status, Query
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 
 from app.schemas.custom_model import CustomModelRequest, TBoltModelRequest
 
@@ -51,7 +51,7 @@ def _get_latest_output_num() -> int:
 @router.get(
     "/download-latest-cad",
     summary="Download Latest Generated CAD Files",
-    description="Download all files (GLB, STL, OBJ, FCStd) for the latest generated model as a ZIP archive."
+    description="Download all files (GLB/STL/OBJ/FCStd + drawing PDF/SVG) for the latest generated model as a ZIP archive."
 )
 def download_latest_cad(file_num: int = Query(None, description="Optional specific file number to download")):
     """
@@ -68,12 +68,21 @@ def download_latest_cad(file_num: int = Query(None, description="Optional specif
                 detail="No generated models found. Please generate a model first."
             )
         
-        # Find all files with this number
-        extensions = ['.glb', '.stl', '.obj', '.FCStd', '.gltf']
+        # Find all files with this number (3D + drawing outputs).
         files_to_zip = []
-        
-        for ext in extensions:
-            file_path = EXPORTS_DIR / f"{file_num}{ext}"
+        candidate_names = [
+            f"{file_num}.glb",
+            f"{file_num}.gltf",
+            f"{file_num}.stl",
+            f"{file_num}.obj",
+            f"{file_num}.step",
+            f"{file_num}.FCStd",
+            f"{file_num}_drawing.pdf",
+            f"{file_num}_drawing.svg",
+        ]
+
+        for name in candidate_names:
+            file_path = EXPORTS_DIR / name
             if file_path.exists() and file_path.stat().st_size > 0:
                 files_to_zip.append(file_path)
         
@@ -155,22 +164,25 @@ def generate_cad(request: CustomModelRequest):
 
         # GLB direct export often produces a 0-byte file; only serve if non-empty
         if glb_path.exists() and glb_path.stat().st_size > 0:
-            return FileResponse(
-                path=str(glb_path),
-                media_type="model/gltf-binary",
-                filename=output_filename
-            )
+            # Return JSON so the frontend can construct a direct /downloads/ URL
+            return JSONResponse(content={
+                "file_num": file_num,
+                "format": "glb",
+                "filename": output_filename
+            })
         elif stl_path.exists():
             return FileResponse(
                 path=str(stl_path),
                 media_type="model/stl",
-                filename=output_filename.replace('.glb', '.stl')
+                filename=output_filename.replace('.glb', '.stl'),
+                headers={"X-Model-Number": str(file_num)}
             )
         elif obj_path.exists():
             return FileResponse(
                 path=str(obj_path),
                 media_type="model/obj",
-                filename=output_filename.replace('.glb', '.obj')
+                filename=output_filename.replace('.glb', '.obj'),
+                headers={"X-Model-Number": str(file_num)}
             )
         else:
             raise HTTPException(
@@ -234,11 +246,26 @@ def generate_tbolt(request: TBoltModelRequest):
         obj_path = EXPORTS_DIR / output_filename.replace('.glb', '.obj')
 
         if glb_path.exists() and glb_path.stat().st_size > 0:
-            return FileResponse(path=str(glb_path), media_type="model/gltf-binary", filename=output_filename)
+            # Return JSON so the frontend can construct a direct /downloads/ URL
+            return JSONResponse(content={
+                "file_num": file_num,
+                "format": "glb",
+                "filename": output_filename
+            })
         elif stl_path.exists():
-            return FileResponse(path=str(stl_path), media_type="model/stl", filename=output_filename.replace('.glb', '.stl'))
+            return FileResponse(
+                path=str(stl_path),
+                media_type="model/stl",
+                filename=output_filename.replace('.glb', '.stl'),
+                headers={"X-Model-Number": str(file_num)}
+            )
         elif obj_path.exists():
-            return FileResponse(path=str(obj_path), media_type="model/obj", filename=output_filename.replace('.glb', '.obj'))
+            return FileResponse(
+                path=str(obj_path),
+                media_type="model/obj",
+                filename=output_filename.replace('.glb', '.obj'),
+                headers={"X-Model-Number": str(file_num)}
+            )
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -99,7 +99,6 @@ export async function getExportsByConfiguration(configId) {
 // --- Custom Model Generation (Roller Support) ---
 
 export async function generateCustomModel(data) {
-  // This endpoint is at /api/generate-cad (not under /api/v1)
   const rootUrl = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace("/api/v1", "");
   const url = `${rootUrl}/api/generate-cad`;
 
@@ -120,11 +119,19 @@ export async function generateCustomModel(data) {
     throw new Error(errorMessage);
   }
 
-  // Response is binary — create a Blob URL and capture format
-  const contentType = response.headers.get("content-type") || "";
-  const format = contentType.includes("stl") ? "stl" : "gltf";
+  const contentType = (response.headers.get("content-type") || "").toLowerCase();
+
+  // Backend returns JSON when GLB was generated successfully
+  if (contentType.includes("application/json")) {
+    const json = await response.json();
+    const glbUrl = `${rootUrl}/downloads/${json.file_num}.glb?t=${Date.now()}`;
+    return { url: glbUrl, format: "gltf" };
+  }
+
+  // Fallback: binary response (STL/OBJ) — use blob URL
   const blob = await response.blob();
   const blobUrl = URL.createObjectURL(blob);
+  const format = contentType.includes("stl") ? "stl" : "gltf";
   return { url: blobUrl, format };
 }
 
@@ -151,11 +158,19 @@ export async function generateTBoltModel(data) {
     throw new Error(errorMessage);
   }
 
-  // Response is binary — create a Blob URL
-  const contentType = response.headers.get("content-type") || "";
-  const format = contentType.includes("stl") ? "stl" : "gltf";
+  const contentType = (response.headers.get("content-type") || "").toLowerCase();
+
+  // Backend returns JSON when GLB was generated successfully
+  if (contentType.includes("application/json")) {
+    const json = await response.json();
+    const glbUrl = `${rootUrl}/downloads/${json.file_num}.glb?t=${Date.now()}`;
+    return { url: glbUrl, format: "gltf" };
+  }
+
+  // Fallback: binary response (STL/OBJ) — use blob URL
   const blob = await response.blob();
   const blobUrl = URL.createObjectURL(blob);
+  const format = contentType.includes("stl") ? "stl" : "gltf";
   return { url: blobUrl, format };
 }
 

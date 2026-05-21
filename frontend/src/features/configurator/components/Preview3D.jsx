@@ -59,7 +59,7 @@ const Preview3D = ({ showModel, configId, modelUrl, modelFormat = 'gltf', modelS
             }
             return;
         }
-
+        
         // For other schemas, use the existing export flow
         if (!configId) {
             alert("Please apply the configuration first to generate the CAD file.");
@@ -199,7 +199,7 @@ const Preview3D = ({ showModel, configId, modelUrl, modelFormat = 'gltf', modelS
                                 prevEntity.selected = false;
                             }
                         }
-
+                        
                         entity.highlighted = true;
                         entity.selected = true;
                         currentlySelectedId = entity.id;
@@ -308,52 +308,47 @@ const Preview3D = ({ showModel, configId, modelUrl, modelFormat = 'gltf', modelS
                             smoothNormals: true
                         }));
                     }
-                } else if (isBlobUrl) {
-                    // Blob URLs break xeokit's XHR (it appends cache-buster params).
-                    // Fetch the blob, convert to ArrayBuffer, and feed via custom dataSource.
-                    fetch(modelUrl)
-                        .then(r => r.arrayBuffer())
-                        .then(buf => {
-                            if (!isMounted) return;
-                            const customDataSource = {
-                                getGLTF(_src, ok, _err) { ok(buf); },
-                                getGLB(_src, ok, _err) { ok(buf); },
-                                getArrayBuffer(_glTFSrc, _binarySrc, ok, _err) { ok(buf); },
-                                getMetaModel(_src, ok, _err) { ok({}); }
-                            };
-                            const gltfLoader = new GLTFLoaderPlugin(viewer, { dataSource: customDataSource });
-                            loadModel(gltfLoader.load({
-                                id: "bearing",
-                                src: "model.glb",
-                                edges: true,
-                                scale: currentScale,
-                                saoEnabled: false,
-                                pbrEnabled: false,
-                                backfaces: true,
-                                performance: false,
-                                combineGeometries: false,
-                                quantizeGeometry: false
-                            }));
-                        })
-                        .catch(err => {
-                            console.error("Failed to fetch GLTF/GLB blob:", err);
-                            setIsLoading(false);
-                        });
                 } else {
                     const gltfLoader = new GLTFLoaderPlugin(viewer);
-                    loadModel(gltfLoader.load({
-                        id: "bearing",
-                        src: modelUrl,
-                        baseUri: baseUri,
-                        edges: true,
-                        scale: currentScale,
-                        saoEnabled: false,
-                        pbrEnabled: false,
-                        backfaces: true,
-                        performance: false,
-                        combineGeometries: false,
-                        quantizeGeometry: false
-                    }));
+                    if (isBlobUrl) {
+                        // Blob URLs break xeokit's XHR (it appends cache-buster params).
+                        // Fetch the blob, convert to ArrayBuffer, and pass as raw GLB data.
+                        fetch(modelUrl)
+                            .then(r => r.arrayBuffer())
+                            .then(buf => {
+                                if (!isMounted) return;
+                                loadModel(gltfLoader.load({
+                                    id: "bearing",
+                                    glb: buf,
+                                    edges: true,
+                                    scale: currentScale,
+                                    saoEnabled: false,
+                                    pbrEnabled: false,
+                                    backfaces: true,
+                                    performance: false,
+                                    combineGeometries: false,
+                                    quantizeGeometry: false
+                                }));
+                            })
+                            .catch(err => {
+                                console.error("Failed to fetch GLB blob:", err);
+                                setIsLoading(false);
+                            });
+                    } else {
+                        loadModel(gltfLoader.load({
+                            id: "bearing",
+                            src: modelUrl,
+                            baseUri: baseUri,
+                            edges: true,
+                            scale: currentScale,
+                            saoEnabled: false,
+                            pbrEnabled: false,
+                            backfaces: true,
+                            performance: false,
+                            combineGeometries: false,
+                            quantizeGeometry: false
+                        }));
+                    }
                 }
 
             } catch (err) {
