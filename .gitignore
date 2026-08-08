@@ -1,0 +1,47 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+venv/
+.venv/
+backend/venv/
+free/venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Runtime / generated artifacts
+*.log
+backend/exports/
+free/output/
+backend/skf_configurator.db
+*.FCStd
+*.FCBak
+*.stl
+*.obj
+*.glb
+*.gltf
+
+# Temporary files
+*.tmp
+*.temp
+~$*
